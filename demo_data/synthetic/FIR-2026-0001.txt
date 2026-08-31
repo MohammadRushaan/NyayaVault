@@ -1,0 +1,16 @@
+FIRST INFORMATION REPORT
+(Under Section 154 Cr.P.C / Section 173 BNSS)
+1. District: Bhopal, Madhya Pradesh | Police Station: Mahila Police Station | Year: 2026
+2. FIR Number: FIR-2026-0001 | Date: 2026-02-05 01:46:26
+3. Acts & Sections: Section 336(3) BNS - Forgery of electronic record for legal proceedings
+4. Complainant / Informant:
+   - Name: Siddharth Dara
+   - Contact: +91 7245622579
+   - Aadhaar Number: 7609 1111 7629
+   - Address: 63, Vasa Path, Katihar-676575
+5. Accused Details: Unknown Threat Actors (Logged IP session)
+6. Investigation Narrative:
+   Error eum earum quis debitis laudantium. Veniam exercitationem eum nulla. Dignissimos omnis cupiditate beatae.
+7. Seized Evidentiary Artifact:
+   1x Encrypted Storage Drive (S/N: WD-8334-KRPL)
+8. Investigating Officer: Sub-Inspector Ekansh Karnik (Belt No: IO-1847)

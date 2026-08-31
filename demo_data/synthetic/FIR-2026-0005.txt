@@ -1,0 +1,16 @@
+FIRST INFORMATION REPORT
+(Under Section 154 Cr.P.C / Section 173 BNSS)
+1. District: Agra, Uttar Pradesh | Police Station: Kotwali Police Station | Year: 2026
+2. FIR Number: FIR-2026-0005 | Date: 2026-05-15 10:37:38
+3. Acts & Sections: Section 336(3) BNS - Forgery of electronic record for legal proceedings
+4. Complainant / Informant:
+   - Name: Omkaar Vasa
+   - Contact: +91 7343398904
+   - Aadhaar Number: 1132 8992 9825
+   - Address: 11, Prasad Path, Panchkula 323011
+5. Accused Details: Unknown Threat Actors (Logged IP session)
+6. Investigation Narrative:
+   Consequatur quis non. Animi reiciendis impedit dicta amet tenetur optio maiores.
+7. Seized Evidentiary Artifact:
+   1x Encrypted Storage Drive (S/N: WD-9959-QAEL)
+8. Investigating Officer: Sub-Inspector Girindra Hora (Belt No: IO-5008)

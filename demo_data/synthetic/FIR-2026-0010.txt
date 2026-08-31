@@ -1,0 +1,16 @@
+FIRST INFORMATION REPORT
+(Under Section 154 Cr.P.C / Section 173 BNSS)
+1. District: Chandigarh | Police Station: Sector 17 Cyber Unit | Year: 2026
+2. FIR Number: FIR-2026-0010 | Date: 2026-04-01 02:11:53
+3. Acts & Sections: Section 303(2) BNS - Theft of encrypted computer hardware
+4. Complainant / Informant:
+   - Name: Vasatika Gole
+   - Contact: +91 9472297058
+   - Aadhaar Number: 8861 1057 3820
+   - Address: H.No. 23, Purohit Nagar, Tinsukia 103067
+5. Accused Details: Unknown Threat Actors (Logged IP session)
+6. Investigation Narrative:
+   Quae commodi dolorum. Ut mollitia voluptatem alias possimus. Consectetur eveniet numquam. Quasi aliquid officia aspernatur hic quaerat. Molestias iure praesentium incidunt qui vitae ducimus.
+7. Seized Evidentiary Artifact:
+   1x Encrypted Storage Drive (S/N: WD-0381-EKQW)
+8. Investigating Officer: Sub-Inspector Ekapad Keer (Belt No: IO-8645)

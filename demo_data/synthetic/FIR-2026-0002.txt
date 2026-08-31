@@ -1,0 +1,16 @@
+FIRST INFORMATION REPORT
+(Under Section 154 Cr.P.C / Section 173 BNSS)
+1. District: Bhopal, Madhya Pradesh | Police Station: Mahila Police Station | Year: 2026
+2. FIR Number: FIR-2026-0002 | Date: 2026-08-01 17:39:40
+3. Acts & Sections: Section 66 IT Act - Unauthorized access & electronic database intrusion
+4. Complainant / Informant:
+   - Name: Odika Mohanty
+   - Contact: +91 8729493183
+   - Aadhaar Number: 8217 9787 5472
+   - Address: 18/46, Deep Ganj, Karnal 836736
+5. Accused Details: Unknown Threat Actors (Logged IP session)
+6. Investigation Narrative:
+   Iure alias tempore neque at perspiciatis. Explicabo quibusdam officiis earum nostrum. Tenetur consequuntur necessitatibus a. Debitis neque sunt beatae eveniet. Ratione error alias doloribus explicabo repellendus cum.
+7. Seized Evidentiary Artifact:
+   1x Encrypted Storage Drive (S/N: WD-4308-FONJ)
+8. Investigating Officer: Sub-Inspector Libni Sastry (Belt No: IO-5026)

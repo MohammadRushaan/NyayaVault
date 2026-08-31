@@ -1,0 +1,16 @@
+FIRST INFORMATION REPORT
+(Under Section 154 Cr.P.C / Section 173 BNSS)
+1. District: Central District, New Delhi | Police Station: Cyber Crime Cell | Year: 2026
+2. FIR Number: FIR-2026-0009 | Date: 2026-08-30 12:38:52
+3. Acts & Sections: Section 318(4) BNS - Cheating and dishonestly inducing delivery of property
+4. Complainant / Informant:
+   - Name: Qasim Ray
+   - Contact: +91 9567126132
+   - Aadhaar Number: 7074 3509 5126
+   - Address: H.No. 01, Sehgal Chowk, Lucknow-519203
+5. Accused Details: Unknown Threat Actors (Logged IP session)
+6. Investigation Narrative:
+   Maiores ea quod sed alias. Libero exercitationem fugiat optio aut. Nesciunt fuga unde consequuntur nam explicabo. Blanditiis eaque dignissimos maiores impedit inventore.
+7. Seized Evidentiary Artifact:
+   1x Encrypted Storage Drive (S/N: WD-0289-EPSA)
+8. Investigating Officer: Sub-Inspector Kabir Badami (Belt No: IO-6384)

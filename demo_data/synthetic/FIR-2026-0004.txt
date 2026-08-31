@@ -1,0 +1,16 @@
+FIRST INFORMATION REPORT
+(Under Section 154 Cr.P.C / Section 173 BNSS)
+1. District: Chandigarh | Police Station: Sector 17 Cyber Unit | Year: 2026
+2. FIR Number: FIR-2026-0004 | Date: 2026-02-27 14:41:28
+3. Acts & Sections: Section 303(2) BNS - Theft of encrypted computer hardware
+4. Complainant / Informant:
+   - Name: Gavin Grover
+   - Contact: +91 6246135934
+   - Aadhaar Number: 4476 6731 1239
+   - Address: 66/38, Bera Nagar, Saharsa-289338
+5. Accused Details: Unknown Threat Actors (Logged IP session)
+6. Investigation Narrative:
+   Earum modi similique aliquam eligendi excepturi. Impedit facilis pariatur dolores reprehenderit commodi. Harum expedita sequi. Quae error necessitatibus minima voluptate. Incidunt officia natus quo.
+7. Seized Evidentiary Artifact:
+   1x Encrypted Storage Drive (S/N: WD-4153-WKOY)
+8. Investigating Officer: Sub-Inspector Onveer Pillai (Belt No: IO-8722)

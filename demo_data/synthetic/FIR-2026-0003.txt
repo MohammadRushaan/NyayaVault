@@ -1,0 +1,16 @@
+FIRST INFORMATION REPORT
+(Under Section 154 Cr.P.C / Section 173 BNSS)
+1. District: Chandigarh | Police Station: Sector 17 Cyber Unit | Year: 2026
+2. FIR Number: FIR-2026-0003 | Date: 2026-01-01 09:47:52
+3. Acts & Sections: Section 336(3) BNS - Forgery of electronic record for legal proceedings
+4. Complainant / Informant:
+   - Name: Amara Mann
+   - Contact: +91 7807875573
+   - Aadhaar Number: 1377 5460 3337
+   - Address: 86/85, Date Zila, Haridwar-063005
+5. Accused Details: Unknown Threat Actors (Logged IP session)
+6. Investigation Narrative:
+   Excepturi alias et architecto repudiandae. Quae quos adipisci enim culpa quo. Molestias excepturi inventore quidem provident vitae. Libero molestiae quis inventore repellat.
+7. Seized Evidentiary Artifact:
+   1x Encrypted Storage Drive (S/N: WD-9528-BPRY)
+8. Investigating Officer: Sub-Inspector Warjas Biswas (Belt No: IO-1949)

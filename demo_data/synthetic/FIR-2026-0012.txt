@@ -1,0 +1,16 @@
+FIRST INFORMATION REPORT
+(Under Section 154 Cr.P.C / Section 173 BNSS)
+1. District: Bhopal, Madhya Pradesh | Police Station: Mahila Police Station | Year: 2026
+2. FIR Number: FIR-2026-0012 | Date: 2026-05-12 22:16:11
+3. Acts & Sections: Section 66 IT Act - Unauthorized access & electronic database intrusion
+4. Complainant / Informant:
+   - Name: Dominic Mital
+   - Contact: +91 6579826458
+   - Aadhaar Number: 4384 6476 2248
+   - Address: 54/809, Shroff Chowk, Jodhpur 946748
+5. Accused Details: Unknown Threat Actors (Logged IP session)
+6. Investigation Narrative:
+   Harum esse nulla quae maiores labore. Velit possimus sunt suscipit ipsum.
+7. Seized Evidentiary Artifact:
+   1x Encrypted Storage Drive (S/N: WD-0520-NTMA)
+8. Investigating Officer: Sub-Inspector Abha Ramakrishnan (Belt No: IO-5869)

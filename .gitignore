@@ -1,0 +1,21 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Node / Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Database & Runtime Storage
+backend/edge_vault.db
+backend/vault_storage/
+*.enc
+
+# Environment variables
+.env
+.env.local
+.DS_Store

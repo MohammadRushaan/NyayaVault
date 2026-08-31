@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend_vault_data:/app/vault_storage
+      - ./backend/edge_vault.db:/app/edge_vault.db
+    environment:
+      - MASTER_KEK=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  backend_vault_data:

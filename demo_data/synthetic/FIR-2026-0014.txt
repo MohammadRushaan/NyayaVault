@@ -1,0 +1,16 @@
+FIRST INFORMATION REPORT
+(Under Section 154 Cr.P.C / Section 173 BNSS)
+1. District: Chandigarh | Police Station: Sector 17 Cyber Unit | Year: 2026
+2. FIR Number: FIR-2026-0014 | Date: 2026-07-08 02:45:43
+3. Acts & Sections: Section 303(2) BNS - Theft of encrypted computer hardware
+4. Complainant / Informant:
+   - Name: Hemang Dave
+   - Contact: +91 6355377450
+   - Aadhaar Number: 2612 6712 7187
+   - Address: H.No. 25, Gala, Chinsurah 753981
+5. Accused Details: Unknown Threat Actors (Logged IP session)
+6. Investigation Narrative:
+   Soluta ullam error. At eos maiores eligendi atque fugit quidem est. Aliquam odio odio et iusto. Sint officia velit excepturi atque.
+7. Seized Evidentiary Artifact:
+   1x Encrypted Storage Drive (S/N: WD-9121-JKSR)
+8. Investigating Officer: Sub-Inspector Gavin Hegde (Belt No: IO-1298)

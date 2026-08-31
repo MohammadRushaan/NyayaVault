@@ -1,0 +1,16 @@
+FIRST INFORMATION REPORT
+(Under Section 154 Cr.P.C / Section 173 BNSS)
+1. District: Agra, Uttar Pradesh | Police Station: Kotwali Police Station | Year: 2026
+2. FIR Number: FIR-2026-0007 | Date: 2026-07-15 15:20:20
+3. Acts & Sections: Section 303(2) BNS - Theft of encrypted computer hardware
+4. Complainant / Informant:
+   - Name: Kai Jayaraman
+   - Contact: +91 6983591641
+   - Aadhaar Number: 8509 9955 5192
+   - Address: H.No. 022, Hans Circle, Bardhaman-629531
+5. Accused Details: Unknown Threat Actors (Logged IP session)
+6. Investigation Narrative:
+   Similique modi consectetur rem. Blanditiis rem repellat sequi maxime. Non harum amet quasi. Quam doloremque quod neque alias recusandae. Accusantium provident nostrum corporis delectus numquam.
+7. Seized Evidentiary Artifact:
+   1x Encrypted Storage Drive (S/N: WD-3426-YGEN)
+8. Investigating Officer: Sub-Inspector Anay Kalla (Belt No: IO-4314)

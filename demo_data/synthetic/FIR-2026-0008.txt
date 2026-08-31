@@ -1,0 +1,16 @@
+FIRST INFORMATION REPORT
+(Under Section 154 Cr.P.C / Section 173 BNSS)
+1. District: Agra, Uttar Pradesh | Police Station: Kotwali Police Station | Year: 2026
+2. FIR Number: FIR-2026-0008 | Date: 2026-02-20 11:42:40
+3. Acts & Sections: Section 303(2) BNS - Theft of encrypted computer hardware
+4. Complainant / Informant:
+   - Name: Alexander Sur
+   - Contact: +91 8474020323
+   - Aadhaar Number: 1240 6103 4584
+   - Address: 54/344, Tara Ganj, Unnao-983471
+5. Accused Details: Unknown Threat Actors (Logged IP session)
+6. Investigation Narrative:
+   Non quod dolor unde minus quo perferendis. Quisquam at deleniti maxime illo. Sed laboriosam placeat amet veniam. Culpa quisquam debitis dolores possimus tenetur. Error deleniti voluptate itaque dolor est.
+7. Seized Evidentiary Artifact:
+   1x Encrypted Storage Drive (S/N: WD-4065-VKRL)
+8. Investigating Officer: Sub-Inspector Xiti Basu (Belt No: IO-9645)

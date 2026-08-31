@@ -1,0 +1,16 @@
+FIRST INFORMATION REPORT
+(Under Section 154 Cr.P.C / Section 173 BNSS)
+1. District: Chandigarh | Police Station: Sector 17 Cyber Unit | Year: 2026
+2. FIR Number: FIR-2026-0006 | Date: 2026-04-23 14:34:17
+3. Acts & Sections: Section 318(4) BNS - Cheating and dishonestly inducing delivery of property
+4. Complainant / Informant:
+   - Name: Gaurav Handa
+   - Contact: +91 9574458655
+   - Aadhaar Number: 7254 4791 4062
+   - Address: H.No. 58, Tak Marg, Akola 333278
+5. Accused Details: Unknown Threat Actors (Logged IP session)
+6. Investigation Narrative:
+   Voluptas sint nisi ipsam. Totam error placeat voluptatum sint adipisci cum temporibus. Nesciunt officiis rerum fugiat quaerat illum. Ipsum distinctio voluptate saepe facere quos.
+7. Seized Evidentiary Artifact:
+   1x Encrypted Storage Drive (S/N: WD-0540-QIYG)
+8. Investigating Officer: Sub-Inspector Ikshita Bose (Belt No: IO-3776)
