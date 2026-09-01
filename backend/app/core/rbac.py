@@ -1,9 +1,9 @@
 import os
 from typing import Optional, List, Dict
-from fastapi import Header, HTTPException, status
+from fastapi import Header, HTTPException, Depends, status
 from pydantic import BaseModel
 
-# 1. Official Police Role Hierarchy (Higher number = higher authority)
+# 1. Police Role Hierarchy
 ROLE_HIERARCHY: Dict[str, int] = {
     "Constable": 1,
     "Investigating Officer": 2,
@@ -100,12 +100,8 @@ MOCK_USERS: Dict[str, UserAuth] = {
     )
 }
 
-# 5. Dependency: Extract and Validate Current Officer from Header
+# 5. Dependency: Extract Current Officer from Header
 async def get_current_user(x_officer_id: Optional[str] = Header("IO_SHARMA")) -> UserAuth:
-    """
-    Extracts officer identity from X-Officer-Id header.
-    Falls back gracefully if an ad-hoc valid officer ID is supplied.
-    """
     if not x_officer_id:
         return MOCK_USERS["IO_SHARMA"]
 
@@ -113,7 +109,6 @@ async def get_current_user(x_officer_id: Optional[str] = Header("IO_SHARMA")) ->
     if clean_id in MOCK_USERS:
         return MOCK_USERS[clean_id]
 
-    # Dynamic fallback for custom demo officers
     return UserAuth(
         officer_id=clean_id,
         name=f"Officer {clean_id}",
@@ -123,7 +118,6 @@ async def get_current_user(x_officer_id: Optional[str] = Header("IO_SHARMA")) ->
 
 # 6. Role Authorization Helpers
 def require_min_role(min_role: str):
-    """Dependency factory ensuring officer meets minimum required role hierarchy tier."""
     min_tier = ROLE_HIERARCHY.get(min_role, 1)
 
     async def role_checker(user: UserAuth = Depends(get_current_user)) -> UserAuth:
@@ -136,16 +130,3 @@ def require_min_role(min_role: str):
         return user
 
     return role_checker
-
-def require_permission(permission: str):
-    """Dependency factory ensuring officer has a specific granular capability."""
-    async def permission_checker(user: UserAuth = Depends(get_current_user)) -> UserAuth:
-        allowed = ROLE_PERMISSIONS.get(user.role, [])
-        if permission not in allowed:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Access Denied: Role '{user.role}' lacks permission '{permission}'."
-            )
-        return user
-
-    return permission_checker
