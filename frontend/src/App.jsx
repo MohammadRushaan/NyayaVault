@@ -33,7 +33,7 @@ import axios from "axios";
 
 /* global cv */
 
-const API_BASE = import.meta.env.VITE_API_BASE || "https://nyayavault-backend.onrender.com/api";
+const API_BASE = "https://nyayavault.onrender.com/api";
 
 const SAMPLE_BILINGUAL_FIR = `प्रथम सूचना रिपोर्ट (FIRST INFORMATION REPORT)
 (धारा 154 दं.प्र.सं. / Section 173 BNSS)
@@ -125,7 +125,9 @@ export default function App() {
   const [warpedBlobFile, setWarpedBlobFile] = useState(null);
   const smoothedCornersRef = useRef(null);
 
-  const fetchAuthHeaders = () => ({ "X-Officer-Id": currentOfficer });
+  const fetchAuthHeaders = () => ({
+  "X-Officer-Id": currentOfficer || "IO_SHARMA"
+});
 
   useEffect(() => {
     fetch(`${API_BASE}/auth/users`)

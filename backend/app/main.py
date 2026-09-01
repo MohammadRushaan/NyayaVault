@@ -1,3 +1,11 @@
+@app.get("/")
+def root_check():
+    return {"status": "online", "service": "NyayaVault API", "version": "2.0.0"}
+
+@app.get("/api")
+def api_check():
+    return {"status": "online", "endpoint": "/api"}
+
 import os
 import sqlite3
 import hashlib
@@ -17,35 +25,26 @@ from app.services.malkhana_service import generate_malkhana_qr
 from app.services.intelligence import auto_classify_document, inspect_suspicious_activity
 from app.services.backup_service import create_system_backup, verify_and_restore_backup
 
-app = FastAPI(
-    title="NyayaVault — Secure Digital Document Management Platform",
-    description="BSA 2023 Sec 63 & BNSS 173 Compliant Police Custody & Evidence Vault",
-    version="2.0.0"
-)
+
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="NyayaVault API", version="2.0.0")
 
-# Allow requests from your Vercel deployment and local development
+# Comprehensive CORS configuration for Vercel and local environments
 app.add_middleware(
     CORSMiddleware,
+    allow_origin_regex="https://.*\.vercel\.app",  # Matches any Vercel preview or production URL
     allow_origins=[
         "https://nyaya-vault.vercel.app",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "*"  # Allows public test calls from any preview URL
+        "*"
     ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["*", "X-Officer-Id", "Content-Type", "Authorization"],
+    expose_headers=["*"],
+    max_age=600,
 )
 
 DB_PATH = "edge_vault.db"
