@@ -1,6 +1,26 @@
 import re
 from typing import Tuple, List, Dict, Any
 
+import re
+
+# Comprehensive regex patterns for Indian identifiers
+AADHAAR_PATTERN = re.compile(r'\b[2-9]\d{3}\s?\d{4}\s?\d{4}\b')
+PAN_PATTERN = re.compile(r'\b[A-Z]{5}[0-9]{4}[A-Z]\b')
+PHONE_PATTERN = re.compile(r'(\+91[\-\s]?)?[6-9]\d{9}\b')
+EMAIL_PATTERN = re.compile(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b')
+
+def redact_pii(text: str) -> str:
+    """Redacts Aadhaar, PAN, phone numbers, and sensitive demographic data."""
+    if not text:
+        return ""
+    
+    redacted = text
+    redacted = AADHAAR_PATTERN.sub('[REDACTED_AADHAAR]', redacted)
+    redacted = PAN_PATTERN.sub('[REDACTED_PAN]', redacted)
+    redacted = PHONE_PATTERN.sub('[REDACTED_PHONE]', redacted)
+    redacted = EMAIL_PATTERN.sub('[REDACTED_EMAIL]', redacted)
+    
+    return redacted
 
 def bilingual_redact_pii(text: str) -> Tuple[str, List[Dict[str, Any]]]:
     """

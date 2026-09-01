@@ -1,54 +1,48 @@
 import os
+import hashlib
 import json
 import base64
-import hashlib
-from typing import Dict, Any
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-STORAGE_DIR = "vault_storage"
-os.makedirs(STORAGE_DIR, exist_ok=True)
-
-# Station Master Key Encryption Key (256-bit)
-KEK_HEX = os.getenv("STATION_MASTER_KEK", "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
-KEK_BYTES = bytes.fromhex(KEK_HEX)
+# Default 256-bit station master key if env var is not set
+DEFAULT_KEK_HEX = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+MASTER_KEK_HEX = os.environ.get("STATION_MASTER_KEK", DEFAULT_KEK_HEX)
+MASTER_KEK = bytes.fromhex(MASTER_KEK_HEX)
 
 def compute_sha256(data: bytes) -> str:
+    """Computes SHA-256 hash digest of raw bytes."""
     return hashlib.sha256(data).hexdigest()
 
-def encrypt_document(raw_bytes: bytes, doc_id: str) -> Dict[str, Any]:
+def encrypt_document(raw_bytes: bytes) -> dict:
+    """Envelope encryption: Generates ephemeral DEK, encrypts with AES-256-GCM, wraps DEK with KEK."""
     dek = AESGCM.generate_key(bit_length=256)
+    aesgcm_dek = AESGCM(dek)
     nonce = os.urandom(12)
-    ciphertext = AESGCM(dek).encrypt(nonce, raw_bytes, None)
+    ciphertext = aesgcm_dek.encrypt(nonce, raw_bytes, None)
 
+    # Wrap DEK with Master KEK
+    aesgcm_kek = AESGCM(MASTER_KEK)
     kek_nonce = os.urandom(12)
-    wrapped_dek = AESGCM(KEK_BYTES).encrypt(kek_nonce, dek, None)
+    wrapped_dek = aesgcm_kek.encrypt(kek_nonce, dek, None)
 
-    envelope = {
-        "doc_id": doc_id,
-        "nonce_b64": base64.b64encode(nonce).decode("utf-8"),
-        "wrapped_dek_b64": base64.b64encode(wrapped_dek).decode("utf-8"),
-        "kek_nonce_b64": base64.b64encode(kek_nonce).decode("utf-8"),
-        "ciphertext_b64": base64.b64encode(ciphertext).decode("utf-8")
+    return {
+        "ciphertext": base64.b64encode(ciphertext).decode("utf-8"),
+        "nonce": base64.b64encode(nonce).decode("utf-8"),
+        "wrapped_dek": base64.b64encode(wrapped_dek).decode("utf-8"),
+        "kek_nonce": base64.b64encode(kek_nonce).decode("utf-8"),
+        "algorithm": "AES-256-GCM",
+        "key_derivation": "NIST-SP-800-38D-Envelope"
     }
 
-    out_path = os.path.join(STORAGE_DIR, f"{doc_id}.enc")
-    with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(envelope, f, indent=2)
+def decrypt_document(envelope: dict) -> bytes:
+    """Unwraps DEK and decrypts payload."""
+    wrapped_dek = base64.b64decode(envelope["wrapped_dek"])
+    kek_nonce = base64.b64decode(envelope["kek_nonce"])
+    ciphertext = base64.b64decode(envelope["ciphertext"])
+    nonce = base64.b64decode(envelope["nonce"])
 
-    return {"path": out_path, "size_bytes": len(raw_bytes)}
+    aesgcm_kek = AESGCM(MASTER_KEK)
+    dek = aesgcm_kek.decrypt(kek_nonce, wrapped_dek, None)
 
-def decrypt_document(doc_id: str) -> bytes:
-    file_path = os.path.join(STORAGE_DIR, f"{doc_id}.enc")
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"Ciphertext envelope {doc_id}.enc not found")
-
-    with open(file_path, "r", encoding="utf-8") as f:
-        envelope = json.load(f)
-
-    nonce = base64.b64decode(envelope["nonce_b64"])
-    wrapped_dek = base64.b64decode(envelope["wrapped_dek_b64"])
-    kek_nonce = base64.b64decode(envelope["kek_nonce_b64"])
-    ciphertext = base64.b64decode(envelope["ciphertext_b64"])
-
-    dek = AESGCM(KEK_BYTES).decrypt(kek_nonce, wrapped_dek, None)
-    return AESGCM(dek).decrypt(nonce, ciphertext, None)
+    aesgcm_dek = AESGCM(dek)
+    return aesgcm_dek.decrypt(nonce, ciphertext, None)
