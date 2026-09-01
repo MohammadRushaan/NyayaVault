@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app.core.security import encrypt_document, decrypt_document, compute_sha256
-from app.core.rbac import get_current_user, UserAuth, ROLE_HIERARCHY
+from app.core.rbac import get_current_user, UserAuth
 from app.services.redaction_engine import redact_pii
 from app.services.malkhana_service import generate_malkhana_qr
 
