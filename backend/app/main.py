@@ -20,26 +20,23 @@ from app.services.intelligence import auto_classify_document, inspect_suspicious
 from app.services.backup_service import create_system_backup, verify_and_restore_backup
 
 
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="NyayaVault API", version="2.0.0")
 
-# Comprehensive CORS configuration for Vercel and local environments
+# Allow all origins, headers, and methods for production
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex="https://.*\.vercel\.app",  # Matches any Vercel preview or production URL
-    allow_origins=[
-        "https://nyaya-vault.vercel.app",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "*"
-    ],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*", "X-Officer-Id", "Content-Type", "Authorization"],
-    expose_headers=["*"],
-    max_age=600,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
+
+@app.get("/")
+def root():
+    return {"status": "online", "service": "NyayaVault API"}
 
 DB_PATH = "edge_vault.db"
 
