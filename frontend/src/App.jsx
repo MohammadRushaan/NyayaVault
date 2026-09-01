@@ -33,7 +33,7 @@ import axios from "axios";
 
 /* global cv */
 
-const API_BASE = "http://localhost:8000/api";
+const API_BASE = import.meta.env.VITE_API_BASE || "https://nyayavault-backend.onrender.com/api";
 
 const SAMPLE_BILINGUAL_FIR = `प्रथम सूचना रिपोर्ट (FIRST INFORMATION REPORT)
 (धारा 154 दं.प्र.सं. / Section 173 BNSS)
@@ -1561,3 +1561,4 @@ export default function App() {
     </div>
   );
 }
+
