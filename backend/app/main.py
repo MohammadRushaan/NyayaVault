@@ -1,10 +1,4 @@
-@app.get("/")
-def root_check():
-    return {"status": "online", "service": "NyayaVault API", "version": "2.0.0"}
 
-@app.get("/api")
-def api_check():
-    return {"status": "online", "endpoint": "/api"}
 
 import os
 import sqlite3
