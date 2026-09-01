@@ -1,201 +1,141 @@
-# NyayaVault (न्यायवॉल्ट)
+# NyayaVault 🏛️🔒
 
-**Zero-Trust Police Evidence Ingestion, Bilingual PII Sanitization & Section 65B BSA Cryptographic Custody Ledger**
-
-NyayaVault bridges the gap between physical police property rooms (*Malkhanas*) and electronic judicial registries. It digitizes physical evidence records, scrubs sensitive personal identifiers in Hindi and English, seals raw artifacts using zero-trust envelope encryption (AES-256-GCM), and maintains an immutable cryptographic custody chain compliant with **Section 65B of the Bharatiya Sakshya Adhiniyam (BSA), 2023** and **Section 173 of the Bharatiya Nagarik Suraksha Sanhita (BNSS)**.
-
----
-
-## Key Features
-
-* **Client-Side Document Scanner & Homography Warping**: Direct webcam acquisition with multi-frame temporal damping, interactive corner alignment, and native Canvas perspective flattening.
-* **On-Premise Privacy & PII Scrubbing**: Strips Indian demographic identifiers (Aadhaar, PAN, contact numbers) and complainant identities across both Devanagari and English text under Section 72 BNS guidelines.
-* **Zero-Trust Envelope Encryption (AES-256-GCM)**: Every record generates a single-use ephemeral Data Encryption Key (DEK) wrapped by a Master Key Encryption Key (KEK). Ciphertext is written to physical `.enc` envelopes.
-* **Automated Section 65B BSA Certification**: Generates electronic admissibility certificates bearing device timestamps, station metadata, officer belt numbers, and SHA-384 digital signatures.
-* **Physical-Digital Malkhana Bridge**: High-density QR generation binding physical property tags directly to on-chain SHA-256 genesis hashes.
-* **Courtroom Tamper & Dual-Artifact Verifier**: Side-by-side visual comparison and bit-level mathematical integrity verification distinguishing authentic evidence copies from tampered records.
+> **Zero-Trust Evidence Management ERP & Cryptographic Chain of Custody**  
+> *Statutory Compliance under Section 63 Bharatiya Sakshya Adhiniyam (BSA), 2023 & Section 72 Bharatiya Nyaya Sanhita (BNS), 2023.*
 
 ---
 
-## System Architecture
+## 📌 Overview
+
+**NyayaVault** is an enterprise-grade digital and physical evidence management ecosystem designed for law enforcement, forensic laboratories, and the judiciary. It bridges physical police property rooms (*Malkhanas*) with an immutable Merkle ledger, ensuring end-to-end auditability, privacy protection, and legally admissible electronic evidence certificates.
+
+---
+
+## ⚡ Key Features
+
+* **Edge-Vision Ingestion (OpenCV.js WebAssembly):** In-browser 4-point contour detection, homography, and perspective deskewing for paper documents without heavy video streaming bandwidth.
+* **Bilingual PII Redaction (Sec 72 BNS):** Automated regex and NER pipeline scrubbing Aadhaar, PAN, phone numbers, and demographic data in English and Hindi (Devanagari).
+* **NIST SP 800-38D Envelope Encryption:** Single-use ephemeral 256-bit Data Encryption Keys (DEKs) wrapped by a Station Master Key (KEK) using authenticated **AES-256-GCM**.
+* **Sequential Merkle Chain:** Cryptographic hash linking ensuring any database modification breaks downstream block integrity.
+* **Physical-to-Digital Malkhana QR Bridge:** High-density Base64 QR tags affixed to physical property bags linking directly to on-chain ledger entries.
+* **Dual-Channel Courtroom Verification:**
+  * **Method 1 (Physical):** Server-side OpenCV QR decoding for rapid property room check-ins.
+  * **Method 2 (Digital File):** Real-time SHA-256 binary hash recalculation with automated fraud/tamper alerting.
+* **1-Click Section 63 BSA Certificate:** Generates self-authenticating electronic record admissibility reports containing cryptographic hash values and officer audit trails.
+* **5-Tier Role-Based Access Control (RBAC):** Strict operational hierarchy across `Constable`, `Investigating Officer`, `Forensic Analyst`, `Station House Officer`, and `Administrator`.
+
+---
+
+## 🏗️ Architecture
 
 ```
-                       ┌──────────────────────────────────────────────┐
-                       │          EVIDENCE INGESTION STAGE            │
-                       │    (Camera / Scanned Photo / Raw Text)       │
-                       └──────────────────────┬───────────────────────┘
-                                              │
-                     ┌────────────────────────┴────────────────────────┐
-                     ▼                                                 ▼
-        [ Bilingual PII Scrubber ]                         [ Cryptographic Engine ]
-   • Aadhaar / PAN / Phone Stripping                  • SHA-256 Fingerprint Generation
-   • English & Devanagari Name Redaction              • AES-256-GCM Envelope Encryption
-                     │                                                 │
-                     └────────────────────────┬────────────────────────┘
-                                              ▼
-                       ┌──────────────────────────────────────────────┐
-                       │            IMMUTABLE BLOCK LEDGER            │
-                       │   Block = SHA-256(Idx + DocID + Hash + Prev) │
-                       └──────────────────────┬───────────────────────┘
-                                              │
-                      ┌───────────────────────┴───────────────────────┐
-                      ▼                                               ▼
-         [ Malkhana QR Seal Tag ]                        [ Section 65B BSA Cert ]
-     • Encodes Case ID & Genesis Hash                • Generates Digital Signature
-     • Fast Scan Physical Evidence Bridge            • Legal Evidentiary Admissibility
-                                              │
-                                              ▼
-                       ┌──────────────────────────────────────────────┐
-                       │          COURTROOM VERIFIER TERMINAL         │
-                       │  • Side-by-Side Visual Genesis Comparator    │
-                       │  • Bit-Level SHA-256 Integrity Validation    │
-                       │  • Real-Time Tamper Simulation Detection     │
-                       └──────────────────────────────────────────────┘
-
-```
-
----
-
-## Tech Stack
-
-* **Backend**: FastAPI (Python 3.11), Uvicorn, SQLite (`edge_vault.db`), SpaCy, OpenCV (`cv2`), PyTesseract, Cryptography (AES-GCM / SHA-256).
-* **Frontend**: React 18, Vite, Tailwind CSS, Lucide Icons, Axios.
-* **Deployment**: Docker, Docker Compose.
-
----
-
-## Directory Structure
-
-```
-nyayavault/
-├── backend/
-│   ├── app/
-│   │   ├── core/
-│   │   │   └── security.py           # Zero-trust AES-256 envelope crypto
-│   │   ├── services/
-│   │   │   ├── bsa_certificate.py    # Section 65B BSA certificate generator
-│   │   │   ├── malkhana_service.py   # Physical property QR generation
-│   │   │   └── redaction_engine.py   # Bilingual Hindi/English PII scrubbing
-│   │   └── main.py                   # FastAPI ingestion, verify & ledger APIs
-│   ├── vault_storage/                # Persisted physical .enc ciphertext envelopes
-│   ├── edge_vault.db                 # Local SQLite Merkle chain ledger
-│   ├── Dockerfile                    # Container definition with Tesseract OCR
-│   └── requirements.txt
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── DocumentCameraScanner.jsx
-│   │   │   └── MalkhanaScanner.jsx
-│   │   ├── utils/
-│   │   │   └── opencvScanner.js      # Homography & perspective warping engine
-│   │   ├── App.jsx                   # Primary UI with Ingestion, Ledger & Court Verifier
-│   │   └── main.jsx
-│   ├── Dockerfile
-│   └── package.json
-├── docker-compose.yml
-├── .gitignore
-└── README.md
-
+[ Physical Evidence / Document ]
+               │
+               ▼
+   [ 1. Edge-Vision Ingestion ]
+   (Browser-side 4-point homography & OCR)
+               │
+               ▼
+  [ 2. PII Sanitization & Hash Seal ]
+  (Sec 72 BNS redaction + SHA-256 genesis fingerprint)
+               │
+       ┌───────┴───────────────────────────────┐
+       ▼                                       ▼
+[ Envelope Encryption ]               [ Sequential Merkle Ledger ]
+(AES-256-GCM to disk as .enc)          (Cryptographic audit row in SQLite/Postgres)
+       │                                       │
+       ▼                                       ▼
+[ Physical Malkhana QR Tag ]          [ Chain-of-Custody Logging ]
+(Affixed to evidence locker bag)       (Malkhana ➔ IO ➔ FSL ➔ Magistrate)
+                                               │
+                                               ▼
+                              [ 3. Courtroom Dual-Verification ]
+                              ├─ Method 1: Scan Malkhana QR (Physical check)
+                              └─ Method 2: Raw Binary Hash Match (Digital check)
+                                               │
+                                               ▼
+                              [ 4. Section 63 BSA Certificate ]
+                              (Statutory judicial admissibility package)
 ```
 
 ---
 
-## Quickstart (Docker Compose)
+## 🚀 Tech Stack
 
-The simplest way to run NyayaVault with all OCR dependencies and system packages:
+* **Frontend:** React 18 (Vite), Tailwind CSS, OpenCV.js (WebAssembly), Lucide Icons
+* **Backend:** FastAPI (Python 3.12), Uvicorn, PyCryptodome / Cryptography
+* **Database & Storage:** SQLite (`edge_vault.db`), AES-256-GCM sealed JSON containers (`vault_storage/`)
+* **Deployment:** Vercel (Frontend), Render (Backend API)
 
+---
+
+## 🛠️ Local Development Setup
+
+### Prerequisites
+* Python 3.11 or 3.12
+* Node.js v18+ or v20+ with npm
+* Git
+
+---
+
+### 1. Clone the Repository
 ```bash
-# 1. Clone repository
-git clone https://github.com/<YOUR_USERNAME>/nyayavault.git
-cd nyayavault
-
-# 2. Build and launch containers
-docker-compose up --build
-
+git clone [https://github.com/MohammadRushaan/NyayaVault.git](https://github.com/MohammadRushaan/NyayaVault.git)
+cd NyayaVault
 ```
-
-* **Frontend Dashboard**: `http://localhost:5173`
-* **Backend OpenAPI Docs**: `http://localhost:8000/docs`
 
 ---
 
-## Manual Local Setup
-
-### 1. Prerequisites
-
-* Python 3.10+
-* Node.js 18+
-* Tesseract-OCR (optional for image OCR; text ingestion works natively)
-
-### 2. Backend Setup
+### 2. Backend Setup (FastAPI)
 
 ```bash
 cd backend
+
+# Create and activate virtual environment
+# Windows (PowerShell):
 python -m venv venv
-
-# Windows:
 .\venv\Scripts\Activate.ps1
-# Linux/macOS:
-# source venv/bin/activate
 
+# macOS / Linux (Bash):
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
-python -m spacy download en_core_web_sm
-uvicorn app.main:app --reload --port 8000
 
+# Start backend server
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
+* **API Root:** `http://127.0.0.1:8000`
+* **Swagger Docs:** `http://127.0.0.1:8000/docs`
 
-### 3. Frontend Setup
+---
+
+### 3. Frontend Setup (React + Vite)
+
+Open a new terminal tab:
 
 ```bash
 cd frontend
+
+# Install packages
 npm install
+
+# Start Vite dev server
 npm run dev
-
 ```
-
-Open `http://localhost:5173` in your browser.
-
----
-
-## API Reference
-
-### 1. Ingest Evidence Record
-
-`POST /api/documents/ingest`
-
-* **Content-Type**: `multipart/form-data`
-* **Parameters**:
-* `case_number` (string): e.g., `FIR-2026-DEL-0891`
-* `doc_type` (string): e.g., `First Information Report (FIR)`
-* `officer_id` (string): e.g., `IO_OFFICER_4401`
-* `actor_role` (string): e.g., `Investigating Officer`
-* `file` (binary, optional): Scanned image or PDF
-* `text_content` (string, optional): Direct bilingual text body
-
-
-
-### 2. Verify Cryptographic Integrity
-
-`POST /api/documents/verify`
-
-* **Content-Type**: `multipart/form-data`
-* **Parameters**:
-* `expected_hash` (string): 64-character genesis benchmark hash
-* `file` (binary, optional): Physical file under inspection
-* `text_content` (string, optional): Text content under inspection
-
-
-
-### 3. Retrieve Audit Ledger
-
-`GET /api/ledger/history`
-
-* Returns chronological array of all committed blocks, hash chains, and Section 65B certificates.
+* **Frontend Application:** `http://localhost:5173`
 
 ---
 
-## License
+## 🔒 Security & Cryptographic Invariants
 
-Distributed under the Apache 2.0 License. See `LICENSE` for details.
+* **Genesis Hash:** $\text{SHA-256}(\text{Raw Payload})$ computed before any view-layer redactions.
+* **Envelope Encryption:** Ciphertext generated via $\text{AES-256-GCM}(\text{DEK}, \text{Nonce}, \text{Payload})$. DEK stored wrapped as $\text{AES-256-GCM}(\text{KEK}, \text{KEK-Nonce}, \text{DEK})$.
+* **Merkle Block Hash:**
+  $$\text{Block Hash}_n = \text{SHA-256}(\text{Doc ID} + \text{Case No} + \text{Digest}_n + \text{Block Hash}_{n-1})$$
 
 ---
+
+## 📄 License & Attribution
+Developed for the National Legal Tech & Law Enforcement Modernization Track. Built in compliance with Bharatiya Sakshya Adhiniyam, 2023 and Bharatiya Nyaya Sanhita, 2023.
