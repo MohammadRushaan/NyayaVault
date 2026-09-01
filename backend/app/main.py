@@ -22,6 +22,23 @@ app = FastAPI(
     description="BSA 2023 Sec 63 & BNSS 173 Compliant Police Custody & Evidence Vault",
     version="2.0.0"
 )
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI(title="NyayaVault API", version="2.0.0")
+
+# Allow requests from your Vercel deployment and local development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://nyaya-vault.vercel.app",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "*"  # Allows public test calls from any preview URL
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.add_middleware(
     CORSMiddleware,
