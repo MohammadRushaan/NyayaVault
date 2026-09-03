@@ -4,7 +4,8 @@ import json
 import uuid
 import sqlite3
 import tarfile
-from datetime import datetime
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from typing import Optional, List
 
 import cv2
@@ -24,6 +25,13 @@ app = FastAPI(
     description="Edge-First Zero-Trust Evidence Management & BSA Sec 63 Ledger",
     version="2.0.0"
 )
+
+# Timezone Definition
+IST = ZoneInfo("Asia/Kolkata")
+
+def get_ist_iso() -> str:
+    """Returns ISO 8601 string in Indian Standard Time (e.g. '2026-09-04T00:38:24+05:30')."""
+    return datetime.now(IST).isoformat()
 
 # Comprehensive CORS Configuration for Vercel & Local Development
 app.add_middleware(
@@ -71,7 +79,7 @@ def init_db():
             masked_text TEXT,
             raw_text TEXT,
             encrypted_file_path TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            timestamp TEXT
         )
     ''')
 
@@ -85,7 +93,7 @@ def init_db():
             purpose TEXT,
             authorized_by TEXT,
             verified_hash TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            timestamp TEXT
         )
     ''')
 
@@ -99,7 +107,7 @@ def init_db():
             triggered_by TEXT,
             details TEXT,
             severity TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            timestamp TEXT
         )
     ''')
 
@@ -107,8 +115,8 @@ def init_db():
     cursor.execute("SELECT COUNT(*) FROM ledger")
     if cursor.fetchone()[0] == 0:
         cursor.execute('''
-            INSERT INTO ledger (doc_id, case_number, doc_type, officer_id, actor_role, sha256_hash, prev_hash, block_hash, masked_text, raw_text, encrypted_file_path)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO ledger (doc_id, case_number, doc_type, officer_id, actor_role, sha256_hash, prev_hash, block_hash, masked_text, raw_text, encrypted_file_path, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             "GENESIS-BLOCK",
             "SYSTEM-CORE",
@@ -120,7 +128,8 @@ def init_db():
             "0000000000000000000000000000000000000000000000000000000000000000",
             "System Genesis Established",
             "System Genesis Established",
-            "ROOT"
+            "ROOT",
+            get_ist_iso()
         ))
     
     conn.commit()
@@ -253,20 +262,22 @@ async def ingest_document(
     block_hash_input = f"{doc_id}{case_number}{sha256_digest}{prev_hash}".encode("utf-8")
     block_hash = compute_sha256(block_hash_input)
 
+    current_timestamp = get_ist_iso()
+
     # 5. Commit to Database
     cursor.execute('''
-        INSERT INTO ledger (doc_id, case_number, doc_type, officer_id, actor_role, sha256_hash, prev_hash, block_hash, masked_text, raw_text, encrypted_file_path)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO ledger (doc_id, case_number, doc_type, officer_id, actor_role, sha256_hash, prev_hash, block_hash, masked_text, raw_text, encrypted_file_path, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         doc_id, case_number, doc_type, current_user.officer_id, current_user.role,
-        sha256_digest, prev_hash, block_hash, redacted_preview, raw_str, enc_path
+        sha256_digest, prev_hash, block_hash, redacted_preview, raw_str, enc_path, current_timestamp
     ))
     
     # Record Initial Custodial Inception
     cursor.execute('''
-        INSERT INTO custody_timeline (event_id, doc_id, from_entity, to_entity, purpose, authorized_by, verified_hash)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''', (f"EVT-{uuid.uuid4().hex[:8].upper()}", doc_id, "Evidence Inception", "Station Malkhana", f"Seized & Sealed under Sec 63 BSA by {current_user.officer_id}", current_user.officer_id, sha256_digest))
+        INSERT INTO custody_timeline (event_id, doc_id, from_entity, to_entity, purpose, authorized_by, verified_hash, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (f"EVT-{uuid.uuid4().hex[:8].upper()}", doc_id, "Evidence Inception", "Station Malkhana", f"Seized & Sealed under Sec 63 BSA by {current_user.officer_id}", current_user.officer_id, sha256_digest, current_timestamp))
     
     conn.commit()
     conn.close()
@@ -283,7 +294,7 @@ async def ingest_document(
         "block_hash": block_hash,
         "masked_text": redacted_preview,
         "malkhana_qr": qr_b64,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": current_timestamp
     }
 
 # 6. Physical Malkhana QR Verification Endpoint
@@ -372,7 +383,7 @@ async def verify_evidence_content(
             current_user.officer_id,
             f"Digest Mismatch: Expected {expected_hash[:16]}... Got {calculated_hash[:16]}...",
             "CRITICAL",
-            datetime.utcnow()
+            get_ist_iso()
         ))
         conn.commit()
         conn.close()
@@ -401,9 +412,9 @@ def log_custody_handover(
         
     evt_id = f"EVT-{uuid.uuid4().hex[:8].upper()}"
     conn.execute('''
-        INSERT INTO custody_timeline (event_id, doc_id, from_entity, to_entity, purpose, authorized_by, verified_hash)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''', (evt_id, req.doc_id, req.from_entity, req.to_entity, req.purpose, current_user.officer_id, row["sha256_hash"]))
+        INSERT INTO custody_timeline (event_id, doc_id, from_entity, to_entity, purpose, authorized_by, verified_hash, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (evt_id, req.doc_id, req.from_entity, req.to_entity, req.purpose, current_user.officer_id, row["sha256_hash"], get_ist_iso()))
     conn.commit()
     conn.close()
     
@@ -445,7 +456,7 @@ def get_bsa_certificate(doc_id: str, current_user: UserAuth = Depends(get_curren
             "previous_block_hash": doc["prev_hash"]
         },
         "declaration": "This certificate is generated by an automated cryptographic vault system operating lawfully. It certifies that the electronic record hash has remained unaltered and mathematically consistent throughout its complete custodial lifecycle.",
-        "timestamp": datetime.utcnow().isoformat() + "Z"
+        "timestamp": get_ist_iso()
     }
 
 # 10. Encrypted Vault Backup
@@ -454,8 +465,8 @@ def create_vault_backup(current_user: UserAuth = Depends(get_current_user)):
     if current_user.role != "Administrator":
         raise HTTPException(status_code=403, detail="Only System Administrators can create backups.")
 
-    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    backup_filename = f"nyayavault_backup_{timestamp}.tar.gz"
+    timestamp_str = datetime.now(IST).strftime("%Y%m%d_%H%M%S")
+    backup_filename = f"nyayavault_backup_{timestamp_str}.tar.gz"
     backup_filepath = os.path.join(BACKUP_DIR, backup_filename)
 
     with tarfile.open(backup_filepath, "w:gz") as tar:
@@ -471,5 +482,5 @@ def create_vault_backup(current_user: UserAuth = Depends(get_current_user)):
         "status": "BACKUP_COMPLETED",
         "backup_file": backup_filename,
         "sha256_hash": backup_hash,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": get_ist_iso()
     }

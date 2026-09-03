@@ -1170,7 +1170,20 @@ export default function App() {
                     >
                       <div className="flex justify-between font-mono font-bold text-emerald-400">
                         <span>#{item.id} {item.case_number}</span>
-                        <span className="text-[10px] text-slate-500">{new Date(item.timestamp).toLocaleTimeString()}</span>
+                        <span className="text-[10px] text-slate-500">
+                          {new Date(
+                          // Ensure the timestamp ends with Z so it's treated as UTC
+                          item.timestamp && !item.timestamp.endsWith('Z') && !item.timestamp.includes('+')
+                            ? `${item.timestamp}Z`
+                            : item.timestamp
+                        ).toLocaleTimeString("en-IN", {
+                          timeZone: "Asia/Kolkata", // Explicit IST Timezone
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          second: "2-digit",
+                          hour12: true, // Use 12-hour format (AM/PM)
+                        })}
+                      </span>
                       </div>
                       <p className="text-[11px] text-slate-300 mt-1">{item.doc_type}</p>
                       <p className="text-[10px] font-mono text-slate-500 truncate mt-1">Hash: {item.sha256_hash}</p>
