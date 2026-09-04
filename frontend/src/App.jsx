@@ -814,43 +814,118 @@ export default function App() {
 
       {/* ================= HEADER WITH CUSTOM NYAYAVAULT JUDICIAL EMBLEM ================= */}
       <header className="border-b border-slate-800 bg-slate-900/95 backdrop-blur sticky top-0 z-40 px-8 py-3.5 flex flex-wrap justify-between items-center gap-4">
-        <div className="flex items-center space-x-3.5">
-          {/* Custom NyayaVault Seal Frame */}
-          <div className="relative flex-shrink-0">
-            <div className="w-11 h-11 rounded-full p-[1.5px] bg-gradient-to-br from-amber-400 via-emerald-500 to-amber-600 shadow-md shadow-emerald-950/40 flex items-center justify-center">
-              <div className="w-full h-full rounded-full bg-[#070c18] overflow-hidden flex items-center justify-center relative">
-                {/* Fallback SVG Vector Seal if logo.png is not loaded */}
-                <svg className="w-7 h-7" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M20 90 V 45 A 30 30 0 0 1 80 45 V 90" stroke="#d4af37" strokeWidth="3" />
-                  <line x1="40" y1="30" x2="80" y2="30" stroke="#d4af37" strokeWidth="2.5" strokeLinecap="round" />
-                  <path d="M42 38 C42 46 58 46 58 38 Z" fill="#d4af37" />
-                  <path d="M66 42 C66 50 82 50 82 42 Z" fill="#d4af37" />
-                  <path d="M50 48 L75 58 V78 C75 88 50 96 50 96 C50 96 25 88 25 78 V58 Z" fill="#062d27" stroke="#10b981" strokeWidth="3" />
-                  <rect x="42" y="65" width="16" height="13" rx="2" fill="#d4af37" />
-                  <path d="M46 65 V59 A4 4 0 0 1 54 59 V65" stroke="#d4af37" strokeWidth="2.5" fill="none" />
-                  <circle cx="50" cy="71" r="1.8" fill="#062d27" />
-                </svg>
+        {/* ================= NYAYAVAULT JUDICIAL SEAL (REFERENCE-BASED) ================= */}
+        <div className="flex items-center gap-3.5">
+          {/* High-Contrast Judicial Seal Medallion */}
+          <div className="relative flex-shrink-0 group">
+            <div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-tr from-amber-400 via-amber-200 to-amber-500 shadow-lg shadow-amber-950/30">
+              <div className="w-full h-full rounded-full bg-[#f8fafc] flex items-center justify-center overflow-hidden relative">
+                <svg
+                  className="w-10 h-10"
+                  viewBox="0 0 100 100"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  {/* Background Golden Halo Arc */}
+                  <circle
+                    cx="50"
+                    cy="46"
+                    r="38"
+                    stroke="#d4af37"
+                    strokeWidth="2.5"
+                    strokeDasharray="160 50"
+                    strokeLinecap="round"
+                  />
 
-                {/* Primary Seal Image */}
-                <img
-                  src="/logo.png"
-                  alt="NyayaVault Seal"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
-                  className="absolute inset-0 w-full h-full object-cover rounded-full bg-white/95"
-                />
+                  {/* Lady Justice Silhouette */}
+                  {/* Head & Blindfold */}
+                  <circle cx="48" cy="24" r="7" fill="#0f172a" />
+                  <rect x="43" y="22" width="11" height="3" rx="1.5" fill="#d4af37" />
+
+                  {/* Gown & Body */}
+                  <path
+                    d="M42 33 C42 33 46 31 52 31 C56 31 58 34 58 37 L61 68 H38 L42 33 Z"
+                    fill="#0f172a"
+                  />
+
+                  {/* Legal Codebook (Left Arm) */}
+                  <path d="M42 34 L34 45 L37 60 L43 56 Z" fill="#0f172a" />
+                  <rect
+                    x="32"
+                    y="48"
+                    width="8"
+                    height="13"
+                    rx="1"
+                    fill="#0f172a"
+                    stroke="#d4af37"
+                    strokeWidth="1.2"
+                  />
+                  <line x1="34" y1="48" x2="34" y2="61" stroke="#ffffff" strokeWidth="1" />
+
+                  {/* Raised Arm Holding Scales of Justice */}
+                  <path
+                    d="M56 35 L66 22 L64 16 C64 16 66 14 68 14 C70 14 71 16 71 17 L69 22 L60 38 Z"
+                    fill="#0f172a"
+                  />
+
+                  {/* Scales of Justice Beam & Pans */}
+                  <line x1="56" y1="26" x2="84" y2="26" stroke="#0f172a" strokeWidth="2.5" strokeLinecap="round" />
+                  <circle cx="70" cy="26" r="2" fill="#d4af37" />
+
+                  {/* Left Pan */}
+                  <line x1="60" y1="26" x2="56" y2="38" stroke="#d4af37" strokeWidth="1" />
+                  <line x1="60" y1="26" x2="64" y2="38" stroke="#d4af37" strokeWidth="1" />
+                  <path d="M54 38 C54 42 66 42 66 38 Z" fill="#0f172a" stroke="#d4af37" strokeWidth="0.8" />
+
+                  {/* Right Pan */}
+                  <line x1="80" y1="26" x2="76" y2="38" stroke="#d4af37" strokeWidth="1" />
+                  <line x1="80" y1="26" x2="84" y2="38" stroke="#d4af37" strokeWidth="1" />
+                  <path d="M74 38 C74 42 86 42 86 38 Z" fill="#0f172a" stroke="#d4af37" strokeWidth="0.8" />
+
+                  {/* Pedestal Arc Divider */}
+                  <path d="M22 71 Q 50 67 78 71" stroke="#0f172a" strokeWidth="2" strokeLinecap="round" />
+
+                  {/* "NV" Monogram */}
+                  {/* N (Deep Navy) */}
+                  <text
+                    x="36"
+                    y="87"
+                    fontFamily="serif"
+                    fontSize="18"
+                    fontWeight="bold"
+                    fill="#0f172a"
+                    letterSpacing="-1"
+                  >
+                    N
+                  </text>
+                  {/* V (Judicial Gold) */}
+                  <text
+                    x="51"
+                    y="87"
+                    fontFamily="serif"
+                    fontSize="18"
+                    fontWeight="bold"
+                    fill="#b48222"
+                  >
+                    V
+                  </text>
+                  {/* Subtle Wing Lines */}
+                  <line x1="20" y1="82" x2="30" y2="82" stroke="#0f172a" strokeWidth="1" />
+                  <line x1="68" y1="82" x2="78" y2="82" stroke="#0f172a" strokeWidth="1" />
+                </svg>
               </div>
             </div>
-            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full"></span>
+            {/* Active Ledger Status Pill */}
+            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-slate-950 rounded-full"></span>
           </div>
 
+          {/* Typography Group */}
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold tracking-tight text-white flex items-center">
                 Nyaya<span className="text-emerald-400">Vault</span>
               </h1>
-              <span className="text-[11px] bg-emerald-950 border border-emerald-500/40 text-emerald-300 px-2.5 py-0.5 rounded-full font-mono font-medium">
+              <span className="text-[11px] bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 px-2.5 py-0.5 rounded-full font-mono font-semibold">
                 BSA Sec 63 Compliant
               </span>
             </div>
