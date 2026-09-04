@@ -126,8 +126,30 @@ export default function App() {
   const smoothedCornersRef = useRef(null);
 
   const fetchAuthHeaders = () => ({
-  "X-Officer-Id": currentOfficer || "IO_SHARMA"
-});
+    "X-Officer-Id": currentOfficer || "IO_SHARMA"
+  });
+
+  // Helper function to safely format dates into Indian Standard Time (IST)
+  const formatIST = (timestampStr) => {
+    if (!timestampStr) return "";
+    try {
+      const safeIso = timestampStr.endsWith("Z") || timestampStr.includes("+")
+        ? timestampStr
+        : `${timestampStr}Z`;
+      const d = new Date(safeIso);
+      return isNaN(d.getTime())
+        ? timestampStr
+        : d.toLocaleTimeString("en-IN", {
+            timeZone: "Asia/Kolkata",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: true
+          });
+    } catch {
+      return timestampStr;
+    }
+  };
 
   useEffect(() => {
     fetch(`${API_BASE}/auth/users`)
@@ -790,15 +812,51 @@ export default function App() {
         </div>
       )}
 
-      {/* App Header with RBAC & Backup */}
-      <header className="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-40 px-8 py-4 flex flex-wrap justify-between items-center gap-4">
-        <div className="flex items-center space-x-3">
-          <ShieldCheck className="h-8 w-8 text-emerald-400" />
+      {/* ================= HEADER WITH CUSTOM NYAYAVAULT JUDICIAL EMBLEM ================= */}
+      <header className="border-b border-slate-800 bg-slate-900/95 backdrop-blur sticky top-0 z-40 px-8 py-3.5 flex flex-wrap justify-between items-center gap-4">
+        <div className="flex items-center space-x-3.5">
+          {/* Custom NyayaVault Seal Frame */}
+          <div className="relative flex-shrink-0">
+            <div className="w-11 h-11 rounded-full p-[1.5px] bg-gradient-to-br from-amber-400 via-emerald-500 to-amber-600 shadow-md shadow-emerald-950/40 flex items-center justify-center">
+              <div className="w-full h-full rounded-full bg-[#070c18] overflow-hidden flex items-center justify-center relative">
+                {/* Fallback SVG Vector Seal if logo.png is not loaded */}
+                <svg className="w-7 h-7" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 90 V 45 A 30 30 0 0 1 80 45 V 90" stroke="#d4af37" strokeWidth="3" />
+                  <line x1="40" y1="30" x2="80" y2="30" stroke="#d4af37" strokeWidth="2.5" strokeLinecap="round" />
+                  <path d="M42 38 C42 46 58 46 58 38 Z" fill="#d4af37" />
+                  <path d="M66 42 C66 50 82 50 82 42 Z" fill="#d4af37" />
+                  <path d="M50 48 L75 58 V78 C75 88 50 96 50 96 C50 96 25 88 25 78 V58 Z" fill="#062d27" stroke="#10b981" strokeWidth="3" />
+                  <rect x="42" y="65" width="16" height="13" rx="2" fill="#d4af37" />
+                  <path d="M46 65 V59 A4 4 0 0 1 54 59 V65" stroke="#d4af37" strokeWidth="2.5" fill="none" />
+                  <circle cx="50" cy="71" r="1.8" fill="#062d27" />
+                </svg>
+
+                {/* Primary Seal Image */}
+                <img
+                  src="/logo.png"
+                  alt="NyayaVault Seal"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
+                  className="absolute inset-0 w-full h-full object-cover rounded-full bg-white/95"
+                />
+              </div>
+            </div>
+            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full"></span>
+          </div>
+
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-              NyayaVault <span className="text-xs bg-emerald-950 border border-emerald-500/40 text-emerald-300 px-2 py-0.5 rounded-full font-mono">BSA Sec 63 Compliant</span>
-            </h1>
-            <p className="text-xs text-slate-400">Zero-Trust Evidence Ingestion, Bilingual PII Scrubbing & Merkle Custody Ledger</p>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold tracking-tight text-white flex items-center">
+                Nyaya<span className="text-emerald-400">Vault</span>
+              </h1>
+              <span className="text-[11px] bg-emerald-950 border border-emerald-500/40 text-emerald-300 px-2.5 py-0.5 rounded-full font-mono font-medium">
+                BSA Sec 63 Compliant
+              </span>
+            </div>
+            <p className="text-[11.5px] text-slate-400 leading-tight mt-0.5">
+              Zero-Trust Evidence Ingestion, Bilingual PII Scrubbing &amp; Merkle Custody Ledger
+            </p>
           </div>
         </div>
 
@@ -961,7 +1019,9 @@ export default function App() {
                     <div key={a.alert_id} className="p-3 bg-slate-900 border border-rose-500/20 rounded-xl flex justify-between items-center text-xs">
                       <div>
                         <span className="font-mono text-rose-400 font-bold">{a.alert_type}</span> on Doc <span className="font-mono text-slate-200">{a.doc_id}</span>: {a.details}
-                        <p className="text-[10px] text-slate-500 mt-0.5 font-mono">Triggered by: {a.triggered_by} • {new Date(a.timestamp).toLocaleTimeString()}</p>
+                        <p className="text-[10px] text-slate-500 mt-0.5 font-mono">
+                          Triggered by: {a.triggered_by} • {formatIST(a.timestamp)}
+                        </p>
                       </div>
                       <span className="text-rose-400 font-mono text-[10px] bg-rose-500/15 border border-rose-500/30 px-2 py-0.5 rounded font-bold">
                         {a.severity}
@@ -1170,20 +1230,9 @@ export default function App() {
                     >
                       <div className="flex justify-between font-mono font-bold text-emerald-400">
                         <span>#{item.id} {item.case_number}</span>
-                        <span className="text-[10px] text-slate-500">
-                          {new Date(
-                          // Ensure the timestamp ends with Z so it's treated as UTC
-                          item.timestamp && !item.timestamp.endsWith('Z') && !item.timestamp.includes('+')
-                            ? `${item.timestamp}Z`
-                            : item.timestamp
-                        ).toLocaleTimeString("en-IN", {
-                          timeZone: "Asia/Kolkata", // Explicit IST Timezone
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          second: "2-digit",
-                          hour12: true, // Use 12-hour format (AM/PM)
-                        })}
-                      </span>
+                        <span className="text-[10px] text-slate-400">
+                          {formatIST(item.timestamp)}
+                        </span>
                       </div>
                       <p className="text-[11px] text-slate-300 mt-1">{item.doc_type}</p>
                       <p className="text-[10px] font-mono text-slate-500 truncate mt-1">Hash: {item.sha256_hash}</p>
@@ -1282,7 +1331,7 @@ export default function App() {
                           </p>
                         </div>
                         <span className="text-[10px] bg-slate-800 border border-slate-700 text-slate-300 px-2.5 py-1 rounded font-mono shrink-0">
-                          {new Date(evt.timestamp).toLocaleTimeString()}
+                          {formatIST(evt.timestamp)}
                         </span>
                       </div>
                     ))}
@@ -1576,4 +1625,3 @@ export default function App() {
     </div>
   );
 }
-
