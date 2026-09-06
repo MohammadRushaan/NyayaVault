@@ -125,6 +125,15 @@ export default function App() {
   const [warpedBlobFile, setWarpedBlobFile] = useState(null);
   const smoothedCornersRef = useRef(null);
 
+  // Sync Ingestion tab fields whenever Active Officer changes
+  useEffect(() => {
+    const selectedObj = officers.find((o) => o.officer_id === currentOfficer);
+    if (selectedObj) {
+      setOfficerId(selectedObj.officer_id);
+      setRole(selectedObj.role);
+    }
+  }, [currentOfficer, officers]);
+
   const fetchAuthHeaders = () => ({
     "X-Officer-Id": currentOfficer || "IO_SHARMA"
   });
@@ -586,6 +595,7 @@ export default function App() {
   };
 
   // Custody Timeline Handover
+  // Locate handleHandover in frontend/src/App.jsx
   const handleHandover = async (e) => {
     e.preventDefault();
     if (!selectedDocId) return;
@@ -599,6 +609,7 @@ export default function App() {
           to_entity: handoverTo,
           purpose: handoverPurpose
         },
+        // Verify this 3rd argument is present:
         { headers: fetchAuthHeaders() }
       );
       if (res.status === 200) {

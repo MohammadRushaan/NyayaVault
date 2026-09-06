@@ -414,7 +414,16 @@ def log_custody_handover(
     conn.execute('''
         INSERT INTO custody_timeline (event_id, doc_id, from_entity, to_entity, purpose, authorized_by, verified_hash, timestamp)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (evt_id, req.doc_id, req.from_entity, req.to_entity, req.purpose, current_user.officer_id, row["sha256_hash"], get_ist_iso()))
+    ''', (
+        evt_id, 
+        req.doc_id, 
+        req.from_entity, 
+        req.to_entity, 
+        req.purpose, 
+        current_user.officer_id,  # Ensure this receives the current user's ID
+        row["sha256_hash"], 
+        get_ist_iso()
+    ))
     conn.commit()
     conn.close()
     

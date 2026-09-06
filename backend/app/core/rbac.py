@@ -67,7 +67,7 @@ class UserAuth(BaseModel):
     station: Optional[str] = "Cyber Crime Cell, New Delhi"
 
 # 4. Standard Authorized Police User Directory
-MOCK_USERS: Dict[str, UserAuth] = {
+USERS_DB: Dict[str, UserAuth] = {
     "CONST_KUMAR": UserAuth(
         officer_id="CONST_KUMAR",
         name="Constable A. Kumar",
@@ -101,20 +101,12 @@ MOCK_USERS: Dict[str, UserAuth] = {
 }
 
 # 5. Dependency: Extract Current Officer from Header
-async def get_current_user(x_officer_id: Optional[str] = Header("IO_SHARMA")) -> UserAuth:
-    if not x_officer_id:
-        return MOCK_USERS["IO_SHARMA"]
-
-    clean_id = x_officer_id.strip()
-    if clean_id in MOCK_USERS:
-        return MOCK_USERS[clean_id]
-
-    return UserAuth(
-        officer_id=clean_id,
-        name=f"Officer {clean_id}",
-        role="Investigating Officer",
-        badge_number=f"DL-{clean_id[:6]}"
-    )
+async def get_current_user(x_officer_id: str = Header("IO_SHARMA")):
+    # Look up user from registry using x_officer_id
+    user = USERS_DB.get(x_officer_id)
+    if not user:
+        return UserAuth(officer_id=x_officer_id, role="Investigating Officer")
+    return user
 
 # 6. Role Authorization Helpers
 def require_min_role(min_role: str):
