@@ -45,7 +45,7 @@ const SAMPLE_BILINGUAL_FIR = `प्रथम सूचना रिपोर्
 
 4. प्रार्थी / शिकायतकर्ता (Complainant Details):
    - नाम (Name): राजेश कुमार शर्मा (Rajesh Kumar Sharma)
-   - आधार संख्या (Aadhaar No): 9182 4739 1029
+   - आधार संख्या (Aadhaar No): [Aadhaar Redacted]
    - मोबाइल नंबर (Phone): +91 98371 44520
    - पता (Address): मकान नं. 14, सिविल लाइन्स, नई दिल्ली
 
@@ -62,7 +62,6 @@ const SAMPLE_BILINGUAL_FIR = `प्रथम सूचना रिपोर्
 
 export default function App() {
   // Navigation & Role State
-  const [handoverOfficer, setHandoverOfficer] = useState(currentOfficer || "IO_SHARMA");
   const [tab, setTab] = useState("command");
   const [currentOfficer, setCurrentOfficer] = useState("IO_SHARMA");
   const [officers, setOfficers] = useState([]);
@@ -93,6 +92,7 @@ export default function App() {
   const [handoverFrom, setHandoverFrom] = useState("Station Malkhana");
   const [handoverTo, setHandoverTo] = useState("Forensic Science Lab (FSL)");
   const [handoverPurpose, setHandoverPurpose] = useState("Ballistics & Electronic Memory Extraction Analysis");
+  const [handoverOfficer, setHandoverOfficer] = useState("IO_SHARMA");
   const [isHandingOver, setIsHandingOver] = useState(false);
 
   // Court Verifier State
@@ -132,7 +132,7 @@ export default function App() {
   const [sortField, setSortField] = useState("id");
   const [sortAsc, setSortAsc] = useState(false);
 
-  // Theme State: defaults to dark or loads saved preference
+  // Theme State
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem("nyayavault_theme") || "dark";
   });
@@ -147,7 +147,6 @@ export default function App() {
 
   const isDark = theme === "dark";
 
-  // Comprehensive Adaptive Design Tokens
   const t = {
     bgApp: isDark ? "bg-[#070c18] text-slate-100" : "bg-slate-50 text-slate-900",
     header: isDark ? "bg-[#0a1020]/95 border-slate-800" : "bg-white/95 border-slate-200 shadow-sm",
@@ -158,7 +157,7 @@ export default function App() {
       ? "bg-[#060a14] border-slate-800 text-slate-100 placeholder-slate-500 focus:border-emerald-500" 
       : "bg-white border-slate-300 text-slate-900 placeholder-slate-400 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600",
     textMuted: isDark ? "text-slate-400" : "text-slate-500",
-    pillNav: isDark ? "bg-slate-900 border-slate-700 text-slate-300" : "bg-slate-100 border-slate-300 text-slate-700",
+    pillNav: isDark ? "bg-slate-900 border-slate-750 text-slate-300" : "bg-slate-100 border-slate-250 text-slate-700",
     border: isDark ? "border-slate-800" : "border-slate-200",
     tableRowHover: isDark ? "hover:bg-slate-800/40" : "hover:bg-slate-100/70",
     subnav: isDark ? "bg-slate-900/50 border-slate-800/80" : "bg-slate-100/70 border-slate-200",
@@ -166,24 +165,22 @@ export default function App() {
   };
 
   // Sync Ingestion tab fields whenever Active Officer changes
-  // Sync form fields whenever the Active Officer dropdown changes
-useEffect(() => {
-  const selectedObj = officers.find((o) => o.officer_id === currentOfficer);
-  if (selectedObj) {
-    setOfficerId(selectedObj.officer_id);
-    setRole(selectedObj.role);
-    // Automatically update the handover officer to match the active officer's name or ID:
-    setHandoverOfficer(selectedObj.name || selectedObj.officer_id);
-  } else {
-    setHandoverOfficer(currentOfficer);
-  }
-}, [currentOfficer, officers]);
+  useEffect(() => {
+    const selectedObj = officers.find((o) => o.officer_id === currentOfficer);
+    if (selectedObj) {
+      setOfficerId(selectedObj.officer_id);
+      setRole(selectedObj.role);
+      setHandoverOfficer(selectedObj.name || selectedObj.officer_id);
+    } else {
+      setOfficerId(currentOfficer);
+      setHandoverOfficer(currentOfficer);
+    }
+  }, [currentOfficer, officers]);
 
   const fetchAuthHeaders = () => ({
     "X-Officer-Id": currentOfficer || "IO_SHARMA"
   });
 
-  // Helper function to safely format dates into Indian Standard Time (IST)
   const formatIST = (timestampStr) => {
     if (!timestampStr) return "";
     try {
@@ -615,11 +612,10 @@ useEffect(() => {
     }
 
     const data = new FormData();
-    data.append("case_number", caseNo.trim() || "FIR-2026-DEL-0891");
-    data.append("doc_type", docType.trim() || "First Information Report (FIR)");
-    // Send whatever you typed into the form:
-    data.append("officer_id", officerId.trim() || currentOfficer);
-    data.append("actor_role", role.trim() || "Investigating Officer");
+    data.append("case_number", (caseNo || "").trim() || "FIR-2026-DEL-0891");
+    data.append("doc_type", (docType || "").trim() || "First Information Report (FIR)");
+    data.append("officer_id", (officerId || "").trim() || currentOfficer || "IO_SHARMA");
+    data.append("actor_role", (role || "").trim() || "Investigating Officer");
 
     if (inputMode === "file" && uploadedFile) {
       data.append("file", uploadedFile);
@@ -630,7 +626,6 @@ useEffect(() => {
     try {
       const res = await axios.post(`${API_BASE}/documents/ingest`, data, {
         headers: {
-          // Keep the authorized session header intact
           "X-Officer-Id": currentOfficer || "IO_SHARMA"
         }
       });
@@ -673,7 +668,10 @@ useEffect(() => {
   };
 
   const handleHandover = async (e) => {
-    e.preventDefault();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (!selectedDocId) return;
     setIsHandingOver(true);
     try {
@@ -684,7 +682,7 @@ useEffect(() => {
           from_entity: handoverFrom,
           to_entity: handoverTo,
           purpose: handoverPurpose,
-          authorized_by: handoverOfficer || officerId || currentOfficer  // <-- Send the custom name
+          authorized_by: handoverOfficer || officerId || currentOfficer
         },
         { 
           headers: {
@@ -923,10 +921,9 @@ useEffect(() => {
         </div>
       )}
 
-      {/* ================= HEADER WITH THEME-AWARE STYLING ================= */}
+      {/* HEADER */}
       <header className={`border-b backdrop-blur sticky top-0 z-40 px-8 py-3.5 flex flex-wrap justify-between items-center gap-4 transition-colors duration-200 ${t.header}`}>
         <div className="flex items-center gap-3.5">
-          {/* High-Contrast Medallion Seal */}
           <div className="relative flex-shrink-0 group">
             <div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-tr from-amber-400 via-amber-200 to-amber-500 shadow-md shadow-amber-950/20">
               <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden relative">
@@ -938,7 +935,7 @@ useEffect(() => {
                   <path d="M42 34 L34 45 L37 60 L43 56 Z" fill="#0f172a" />
                   <rect x="32" y="48" width="8" height="13" rx="1" fill="#0f172a" stroke="#d4af37" strokeWidth="1.2" />
                   <line x1="34" y1="48" x2="34" y2="61" stroke="#ffffff" strokeWidth="1" />
-                  <path d="M56 35 L66 22 L64 16 C64 16 66 14 68 14 C70 14 71 16 71 17 L69 22 L60 38 Z" fill="#0f172a" />
+                  <path d="M56 35 L66 22 L64 16 C64 16 66 14 68 14 C70 14 71 17 L69 22 L60 38 Z" fill="#0f172a" />
                   <line x1="56" y1="26" x2="84" y2="26" stroke="#0f172a" strokeWidth="2.5" strokeLinecap="round" />
                   <circle cx="70" cy="26" r="2" fill="#d4af37" />
                   <line x1="60" y1="26" x2="56" y2="38" stroke="#d4af37" strokeWidth="1" />
@@ -1022,7 +1019,7 @@ useEffect(() => {
         </div>
       </header>
 
-      {/* Navigation Sub-Header */}
+      {/* SUB-HEADER NAVIGATION */}
       <div className={`border-b px-8 py-2.5 flex justify-between items-center transition-colors duration-200 ${t.subnav}`}>
         <div className={`flex border p-1 rounded-xl transition-colors duration-200 ${t.innerBox}`}>
           <button onClick={() => setTab("command")} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${tab === "command" ? "bg-emerald-600 text-white shadow-md" : isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-900"}`}>
@@ -1041,7 +1038,7 @@ useEffect(() => {
       </div>
 
       <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
-        {/* Tab 1: Senior Officer Command Dashboard */}
+        {/* Tab 1: Command Dashboard */}
         {tab === "command" && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -1157,7 +1154,7 @@ useEffect(() => {
               </div>
             </div>
 
-            {/* Live Security Breach Alerts */}
+            {/* Security Alerts */}
             {recentAlerts.length > 0 && (
               <div className="bg-rose-950/20 border border-rose-500/30 p-5 rounded-2xl space-y-3 shadow-xl">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-rose-400 flex items-center gap-2">
@@ -1288,9 +1285,8 @@ useEffect(() => {
                   </div>
                 )}
 
-                {/* Change type="submit" to type="button" and attach onClick directly */}
                 <button 
-                  type="button" 
+                  type="button"
                   onClick={submitIngestion}
                   className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2"
                 >
@@ -1299,7 +1295,7 @@ useEffect(() => {
               </form>
             </div>
 
-            {/* Ingestion Telemetry & Redaction Panel */}
+            {/* Telemetry Output */}
             <div className="space-y-4">
               {ingestOutput ? (
                 <>
@@ -1444,8 +1440,6 @@ useEffect(() => {
                         className={`w-full rounded-xl p-2 text-xs outline-none transition ${t.input}`}
                       />
                     </div>
-
-                    {/* ================= PUT YOUR SNIPPET HERE ================= */}
                     <div>
                       <label className={`block text-[10px] font-bold uppercase tracking-wider mb-1 ${t.textMuted}`}>
                         Authorizing Officer
@@ -1458,8 +1452,6 @@ useEffect(() => {
                         className={`w-full rounded-xl p-2 text-xs outline-none transition ${t.input}`}
                       />
                     </div>
-                    {/* ========================================================== */}
-
                     <div className="md:col-span-2">
                       <button
                         type="submit"
@@ -1501,7 +1493,7 @@ useEffect(() => {
                           </div>
                           <p className={`text-xs ${t.titlePrimary}`}>{evt.purpose}</p>
                           <p className={`text-[11px] font-mono ${t.textMuted}`}>
-                            Officer: {evt.authorized_by} • Verified Hash: {evt.verified_hash.substring(0, 16)}...
+                            Officer: {evt.authorized_by} • Verified Hash: {evt.verified_hash ? evt.verified_hash.substring(0, 16) : ""}...
                           </p>
                         </div>
                         <span className={`text-[10px] px-2.5 py-1 rounded font-mono shrink-0 border ${t.pillNav}`}>
@@ -1798,4 +1790,4 @@ useEffect(() => {
       )}
     </div>
   );
-}   
+}
