@@ -34,21 +34,15 @@ def get_ist_iso() -> str:
     return datetime.now(IST).isoformat()
 
 # Comprehensive CORS Configuration
+# Locate app.add_middleware(CORSMiddleware, ...) in backend/app/main.py
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"https://.*\.vercel\.app",
-    allow_origins=[
-        "https://nyaya-vault.vercel.app",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:3000",
-        "*"
-    ],
+    allow_origins=["*"],
     allow_credentials=False,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*", "X-Officer-Id", "Content-Type", "Authorization"],
+    allow_methods=["*"],
+    allow_headers=["*"],
     expose_headers=["*"],
-    max_age=600,
+    max_age=86400,
 )
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

@@ -616,13 +616,13 @@ export default function App() {
     }
 
     try {
-      const res = await axios.post(`${API_BASE}/documents/ingest`, data, { 
+      const res = await axios.post(`${API_BASE}/documents/ingest`, data, {
         headers: {
-          ...fetchAuthHeaders(),
           "X-Officer-Id": officerId
+          // Let the browser/Axios automatically set Content-Type with the multipart boundary
         }
       });
-      
+
       const qrDataUrl = `data:image/png;base64,${res.data.malkhana_qr}`;
       setIngestOutput({
         ...res.data,
@@ -646,7 +646,9 @@ export default function App() {
       loadDashboard();
       fetchLedger();
     } catch (err) {
-      alert("Ingestion error: " + (err.response?.data?.detail || err.message));
+      console.error("Full Ingestion Error:", err);
+      const detail = err.response?.data?.detail || err.message;
+      alert(`Ingestion error: ${detail}`);
     }
   };
 
