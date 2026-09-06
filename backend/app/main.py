@@ -4,7 +4,7 @@ import json
 import uuid
 import sqlite3
 import tarfile
-from datetime import datetime, timezone
+from datetime import datetime
 from zoneinfo import ZoneInfo
 from typing import Optional, List
 
@@ -23,17 +23,17 @@ from app.services.malkhana_service import generate_malkhana_qr
 app = FastAPI(
     title="NyayaVault API",
     description="Edge-First Zero-Trust Evidence Management & BSA Sec 63 Ledger",
-    version="2.0.0"
+    version="2.1.0"
 )
 
 # Timezone Definition
 IST = ZoneInfo("Asia/Kolkata")
 
 def get_ist_iso() -> str:
-    """Returns ISO 8601 string in Indian Standard Time (e.g. '2026-09-04T00:38:24+05:30')."""
+    """Returns ISO 8601 string in Indian Standard Time (e.g. '2026-09-07T00:38:24+05:30')."""
     return datetime.now(IST).isoformat()
 
-# Comprehensive CORS Configuration for Vercel & Local Development
+# Comprehensive CORS Configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=r"https://.*\.vercel\.app",
@@ -59,7 +59,7 @@ BACKUP_DIR = os.path.join(BASE_DIR, "backups")
 os.makedirs(STORAGE_DIR, exist_ok=True)
 os.makedirs(BACKUP_DIR, exist_ok=True)
 
-# Database Initialization
+# Database Initialization & Migration
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -83,7 +83,7 @@ def init_db():
         )
     ''')
 
-    # Chain of Custody Timeline
+    # Two-Party Chain of Custody Timeline Table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS custody_timeline (
             event_id TEXT PRIMARY KEY,
@@ -93,11 +93,22 @@ def init_db():
             purpose TEXT,
             authorized_by TEXT,
             verified_hash TEXT,
+            status TEXT DEFAULT 'ACKNOWLEDGED',
+            signature TEXT,
+            acknowledged_by TEXT,
+            acknowledged_at TEXT,
             timestamp TEXT
         )
     ''')
 
-    # Security Breach & Tamper Alerts
+    # Runtime column migrations for existing SQLite databases
+    cursor.execute("PRAGMA table_info(custody_timeline)")
+    existing_cols = [col[1] for col in cursor.fetchall()]
+    for col_name in ["status", "signature", "acknowledged_by", "acknowledged_at"]:
+        if col_name not in existing_cols:
+            cursor.execute(f"ALTER TABLE custody_timeline ADD COLUMN {col_name} TEXT")
+
+    # Security Breach & Tamper Alerts Table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS security_alerts (
             alert_id TEXT PRIMARY KEY,
@@ -144,14 +155,18 @@ class HandoverRequest(BaseModel):
     to_entity: str
     purpose: str
 
+class CustodyAcknowledgeRequest(BaseModel):
+    event_id: str
+    received_hash: str
+
 # 1. Health & Root Check Endpoints
 @app.get("/")
 def root():
-    return {"status": "online", "service": "NyayaVault API", "version": "2.0.0"}
+    return {"status": "online", "service": "NyayaVault API", "version": "2.1.0"}
 
 @app.get("/api")
 def api_root():
-    return {"status": "online", "service": "NyayaVault API", "version": "2.0.0"}
+    return {"status": "online", "service": "NyayaVault API", "version": "2.1.0"}
 
 # 2. RBAC Officers Directory
 @app.get("/api/auth/users")
@@ -164,7 +179,7 @@ def get_auth_users():
         {"officer_id": "ADMIN", "name": "HQ System Admin", "role": "System Administrator"}
     ]
 
-# 3. Senior-Officer Command Dashboard Metrics
+# 3. Command Dashboard Metrics
 @app.get("/api/dashboard/metrics")
 def get_dashboard_metrics(current_user: UserAuth = Depends(get_current_user)):
     conn = sqlite3.connect(DB_PATH)
@@ -186,7 +201,7 @@ def get_dashboard_metrics(current_user: UserAuth = Depends(get_current_user)):
         "recent_alerts": [dict(a) for a in recent_alerts]
     }
 
-# 4. Immutable Ledger History & Smart Search
+# 4. Ledger History & Multi-Criteria Search
 @app.get("/api/ledger/history")
 def get_ledger_history(current_user: UserAuth = Depends(get_current_user)):
     conn = sqlite3.connect(DB_PATH)
@@ -207,10 +222,10 @@ def search_documents(
     sql = "SELECT * FROM ledger WHERE doc_id != 'GENESIS-BLOCK'"
     params = []
     
-    if query:
-        sql += " AND (case_number LIKE ? OR doc_id LIKE ? OR masked_text LIKE ?)"
-        q_term = f"%{query}%"
-        params.extend([q_term, q_term, q_term])
+    if query and query.strip():
+        sql += " AND (case_number LIKE ? OR doc_id LIKE ? OR masked_text LIKE ? OR officer_id LIKE ?)"
+        q_term = f"%{query.strip()}%"
+        params.extend([q_term, q_term, q_term, q_term])
         
     if doc_type and doc_type != "All":
         sql += " AND doc_type = ?"
@@ -221,20 +236,20 @@ def search_documents(
     conn.close()
     return [dict(r) for r in rows]
 
-# 5. Ingestion Engine (Envelope Encryption & Merkle Chain)
+# 5. Ingestion Engine (Envelope Encryption, Redaction & Merkle Hash)
 @app.post("/api/documents/ingest")
 async def ingest_document(
     case_number: str = Form(...),
     doc_type: str = Form(...),
-    officer_id: Optional[str] = Form(None),   # <-- ADD THIS
-    actor_role: Optional[str] = Form(None),   # <-- ADD THIS
+    officer_id: Optional[str] = Form(None),
+    actor_role: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None),
     text_content: Optional[str] = Form(None),
     current_user: UserAuth = Depends(get_current_user)
 ):
-    # Fallback to current_user if not supplied in form
-    final_officer = officer_id if officer_id else current_user.officer_id
-    final_role = actor_role if actor_role else current_user.role
+    # Dynamic form officer override, fallback to session auth header
+    final_officer = officer_id.strip() if officer_id and officer_id.strip() else current_user.officer_id
+    final_role = actor_role.strip() if actor_role and actor_role.strip() else current_user.role
 
     doc_id = f"DOC-{uuid.uuid4().hex[:10].upper()}"
     
@@ -262,10 +277,9 @@ async def ingest_document(
     
     block_hash_input = f"{doc_id}{case_number}{sha256_digest}{prev_hash}".encode("utf-8")
     block_hash = compute_sha256(block_hash_input)
-
     current_timestamp = get_ist_iso()
 
-    # Commit with the typed officer details:
+    # Commit record into ledger
     cursor.execute('''
         INSERT INTO ledger (doc_id, case_number, doc_type, officer_id, actor_role, sha256_hash, prev_hash, block_hash, masked_text, raw_text, encrypted_file_path, timestamp)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -274,10 +288,10 @@ async def ingest_document(
         sha256_digest, prev_hash, block_hash, redacted_preview, raw_str, enc_path, current_timestamp
     ))
     
-    # Record Inception with the typed officer details:
+    # Commit inception block with dynamic officer identity
     cursor.execute('''
-        INSERT INTO custody_timeline (event_id, doc_id, from_entity, to_entity, purpose, authorized_by, verified_hash, timestamp)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO custody_timeline (event_id, doc_id, from_entity, to_entity, purpose, authorized_by, verified_hash, status, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'ACKNOWLEDGED', ?)
     ''', (
         f"EVT-{uuid.uuid4().hex[:8].upper()}", 
         doc_id, 
@@ -303,6 +317,7 @@ async def ingest_document(
         "block_hash": block_hash,
         "masked_text": redacted_preview,
         "malkhana_qr": qr_b64,
+        "officer_id": final_officer,
         "timestamp": current_timestamp
     }
 
@@ -313,8 +328,6 @@ async def verify_qr_endpoint(
     current_user: UserAuth = Depends(get_current_user)
 ):
     contents = await file.read()
-    
-    # Decode Image using OpenCV
     nparr = np.frombuffer(contents, np.uint8)
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     
@@ -340,7 +353,6 @@ async def verify_qr_endpoint(
     case_no = parts[1]
     doc_id = parts[2]
 
-    # Look up in Immutable Ledger
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     row = conn.execute("SELECT * FROM ledger WHERE doc_id = ?", (doc_id,)).fetchone()
@@ -405,7 +417,7 @@ async def verify_evidence_content(
         "audit_type": "CONTENT_INTEGRITY"
     }
 
-# 8. Chain of Custody Handover & Timeline
+# 8. Chain of Custody Protocol (Compatible with 1-Step & 2-Party Handshake)
 @app.post("/api/custody/handover")
 def log_custody_handover(
     req: HandoverRequest,
@@ -420,23 +432,53 @@ def log_custody_handover(
         raise HTTPException(status_code=404, detail="Document ID not found in ledger.")
         
     evt_id = f"EVT-{uuid.uuid4().hex[:8].upper()}"
+    timestamp = get_ist_iso()
+
     conn.execute('''
-        INSERT INTO custody_timeline (event_id, doc_id, from_entity, to_entity, purpose, authorized_by, verified_hash, timestamp)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO custody_timeline (event_id, doc_id, from_entity, to_entity, purpose, authorized_by, verified_hash, status, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'ACKNOWLEDGED', ?)
     ''', (
         evt_id, 
         req.doc_id, 
         req.from_entity, 
         req.to_entity, 
         req.purpose, 
-        current_user.officer_id,  # Ensure this receives the current user's ID
+        current_user.officer_id,
         row["sha256_hash"], 
-        get_ist_iso()
+        timestamp
     ))
     conn.commit()
     conn.close()
     
-    return {"status": "RECORDED", "event_id": evt_id}
+    return {"status": "RECORDED", "event_id": evt_id, "authorized_by": current_user.officer_id}
+
+@app.post("/api/custody/acknowledge")
+def acknowledge_custody(
+    req: CustodyAcknowledgeRequest,
+    current_user: UserAuth = Depends(get_current_user)
+):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    evt = conn.execute("SELECT * FROM custody_timeline WHERE event_id = ?", (req.event_id,)).fetchone()
+    
+    if not evt:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Custody movement event not found.")
+
+    if evt["verified_hash"].strip().lower() != req.received_hash.strip().lower():
+        conn.close()
+        raise HTTPException(status_code=400, detail="Custody rejection: Received hash does not match genesis digest.")
+
+    ack_timestamp = get_ist_iso()
+    conn.execute('''
+        UPDATE custody_timeline 
+        SET status = 'ACKNOWLEDGED', acknowledged_by = ?, acknowledged_at = ?
+        WHERE event_id = ?
+    ''', (current_user.officer_id, ack_timestamp, req.event_id))
+    conn.commit()
+    conn.close()
+
+    return {"status": "ACKNOWLEDGED", "event_id": req.event_id, "acknowledged_by": current_user.officer_id}
 
 @app.get("/api/custody/{doc_id}/timeline")
 def get_custody_timeline(doc_id: str, current_user: UserAuth = Depends(get_current_user)):
@@ -480,7 +522,7 @@ def get_bsa_certificate(doc_id: str, current_user: UserAuth = Depends(get_curren
 # 10. Encrypted Vault Backup
 @app.post("/api/system/backup")
 def create_vault_backup(current_user: UserAuth = Depends(get_current_user)):
-    if current_user.role != "Administrator":
+    if current_user.role != "Administrator" and current_user.officer_id != "ADMIN":
         raise HTTPException(status_code=403, detail="Only System Administrators can create backups.")
 
     timestamp_str = datetime.now(IST).strftime("%Y%m%d_%H%M%S")

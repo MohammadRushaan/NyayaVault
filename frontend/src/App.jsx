@@ -449,6 +449,20 @@ export default function App() {
     setCameraStage("adjust");
   };
 
+  // 1. Session Storage Form Persistence
+  useEffect(() => {
+    const savedText = sessionStorage.getItem("nyaya_raw_text");
+    const savedCase = sessionStorage.getItem("nyaya_case_no");
+    if (savedText) setRawText(savedText);
+    if (savedCase) setCaseNo(savedCase);
+  }, []);
+
+  const handleTextChange = (val) => {
+    setRawText(val);
+    sessionStorage.setItem("nyaya_raw_text", val);
+  };
+
+  // 2. Aspect-Ratio Corrected Homography Warping
   const executePerspectiveWarp = () => {
     if (!capturedSnapshotUrl) return;
 
@@ -465,19 +479,17 @@ export default function App() {
         y: Math.round(c.y * img.height)
       }));
 
-      const widthA = Math.hypot(c2.x - c3.x, c2.y - c3.y);
-      const widthB = Math.hypot(c1.x - c0.x, c1.y - c0.y);
-      const targetW = Math.max(300, Math.round(Math.max(widthA, widthB)));
+      // Calculate Euclidean edge lengths
+      const widthTop = Math.hypot(c1.x - c0.x, c1.y - c0.y);
+      const widthBottom = Math.hypot(c2.x - c3.x, c2.y - c3.y);
+      const targetW = Math.round(Math.max(widthTop, widthBottom));
 
-      const heightA = Math.hypot(c1.x - c2.x, c1.y - c2.y);
-      const heightB = Math.hypot(c0.x - c3.x, c0.y - c3.y);
-      const targetH = Math.max(300, Math.round(Math.max(heightA, heightB)));
+      // Calculate height based on A4 / Legal ratio (~1.414) to prevent text distortion
+      const targetH = Math.round(targetW * 1.414);
 
       const dstCanvas = warpedCanvasRef.current || document.createElement("canvas");
       dstCanvas.width = targetW;
       dstCanvas.height = targetH;
-
-      let warpedDone = false;
 
       if (typeof cv !== "undefined" && cv.Mat) {
         try {
@@ -487,7 +499,7 @@ export default function App() {
           let dstCoords = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, targetW - 1, 0, targetW - 1, targetH - 1, 0, targetH - 1]);
 
           let M = cv.getPerspectiveTransform(srcCoords, dstCoords);
-          cv.warpPerspective(src, dst, M, new cv.Size(targetW, targetH), cv.INTER_LINEAR, cv.BORDER_CONSTANT, new cv.Scalar());
+          cv.warpPerspective(src, dst, M, new cv.Size(targetW, targetH), cv.INTER_CUBIC, cv.BORDER_CONSTANT, new cv.Scalar(255, 255, 255, 255));
           cv.imshow(dstCanvas, dst);
 
           src.delete();
@@ -495,31 +507,18 @@ export default function App() {
           srcCoords.delete();
           dstCoords.delete();
           M.delete();
-          warpedDone = true;
-        } catch (e) {}
-      }
-
-      if (!warpedDone) {
-        const minX = Math.min(c0.x, c1.x, c2.x, c3.x);
-        const maxX = Math.max(c0.x, c1.x, c2.x, c3.x);
-        const minY = Math.min(c0.y, c1.y, c2.y, c3.y);
-        const maxY = Math.max(c0.y, c1.y, c2.y, c3.y);
-        const cropW = Math.max(100, maxX - minX);
-        const cropH = Math.max(100, maxY - minY);
-        dstCanvas.width = cropW;
-        dstCanvas.height = cropH;
-        const dCtx = dstCanvas.getContext("2d");
-        dCtx.drawImage(srcCanvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+        } catch (e) {
+          console.error("OpenCV Warp Exception: ", e);
+        }
       }
 
       const outUrl = dstCanvas.toDataURL("image/png");
       setWarpedResultUrl(outUrl);
-
       dstCanvas.toBlob((blob) => {
         const file = new File([blob], `scanned_warped_${Date.now()}.png`, { type: "image/png" });
         setWarpedBlobFile(file);
         setCameraStage("warped");
-      }, "image/png", 0.95);
+      }, "image/png", 0.98);
     };
     img.src = capturedSnapshotUrl;
   };
