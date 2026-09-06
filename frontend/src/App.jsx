@@ -62,6 +62,7 @@ const SAMPLE_BILINGUAL_FIR = `प्रथम सूचना रिपोर्
 
 export default function App() {
   // Navigation & Role State
+  const [handoverOfficer, setHandoverOfficer] = useState(currentOfficer || "IO_SHARMA");
   const [tab, setTab] = useState("command");
   const [currentOfficer, setCurrentOfficer] = useState("IO_SHARMA");
   const [officers, setOfficers] = useState([]);
@@ -165,13 +166,18 @@ export default function App() {
   };
 
   // Sync Ingestion tab fields whenever Active Officer changes
-  useEffect(() => {
-    const selectedObj = officers.find((o) => o.officer_id === currentOfficer);
-    if (selectedObj) {
-      setOfficerId(selectedObj.officer_id);
-      setRole(selectedObj.role);
-    }
-  }, [currentOfficer, officers]);
+  // Sync form fields whenever the Active Officer dropdown changes
+useEffect(() => {
+  const selectedObj = officers.find((o) => o.officer_id === currentOfficer);
+  if (selectedObj) {
+    setOfficerId(selectedObj.officer_id);
+    setRole(selectedObj.role);
+    // Automatically update the handover officer to match the active officer's name or ID:
+    setHandoverOfficer(selectedObj.name || selectedObj.officer_id);
+  } else {
+    setHandoverOfficer(currentOfficer);
+  }
+}, [currentOfficer, officers]);
 
   const fetchAuthHeaders = () => ({
     "X-Officer-Id": currentOfficer || "IO_SHARMA"
@@ -677,9 +683,15 @@ export default function App() {
           doc_id: selectedDocId,
           from_entity: handoverFrom,
           to_entity: handoverTo,
-          purpose: handoverPurpose
+          purpose: handoverPurpose,
+          authorized_by: handoverOfficer || officerId || currentOfficer  // <-- Send the custom name
         },
-        { headers: fetchAuthHeaders() }
+        { 
+          headers: {
+            ...fetchAuthHeaders(),
+            "X-Officer-Id": handoverOfficer || officerId || currentOfficer
+          } 
+        }
       );
       if (res.status === 200) {
         loadTimeline(selectedDocId);
@@ -1432,6 +1444,22 @@ export default function App() {
                         className={`w-full rounded-xl p-2 text-xs outline-none transition ${t.input}`}
                       />
                     </div>
+
+                    {/* ================= PUT YOUR SNIPPET HERE ================= */}
+                    <div>
+                      <label className={`block text-[10px] font-bold uppercase tracking-wider mb-1 ${t.textMuted}`}>
+                        Authorizing Officer
+                      </label>
+                      <input
+                        type="text"
+                        value={handoverOfficer}
+                        onChange={(e) => setHandoverOfficer(e.target.value)}
+                        placeholder={`Default: ${currentOfficer}`}
+                        className={`w-full rounded-xl p-2 text-xs outline-none transition ${t.input}`}
+                      />
+                    </div>
+                    {/* ========================================================== */}
+
                     <div className="md:col-span-2">
                       <button
                         type="submit"

@@ -154,6 +154,7 @@ class HandoverRequest(BaseModel):
     from_entity: str
     to_entity: str
     purpose: str
+    authorized_by: Optional[str] = None
 
 class CustodyAcknowledgeRequest(BaseModel):
     event_id: str
@@ -423,6 +424,9 @@ def log_custody_handover(
         evt_id = f"EVT-{uuid.uuid4().hex[:8].upper()}"
         timestamp = get_ist_iso()
 
+        # Use explicitly passed officer name if provided, else fallback to session user
+        final_officer = (req.authorized_by or current_user.officer_id).strip()
+
         with conn:
             conn.execute('''
                 INSERT INTO custody_timeline (event_id, doc_id, from_entity, to_entity, purpose, authorized_by, verified_hash, status, timestamp)
@@ -433,11 +437,11 @@ def log_custody_handover(
                 req.from_entity, 
                 req.to_entity, 
                 req.purpose, 
-                current_user.officer_id,
+                final_officer,
                 row["sha256_hash"], 
                 timestamp
             ))
-        return {"status": "RECORDED", "event_id": evt_id, "authorized_by": current_user.officer_id}
+        return {"status": "RECORDED", "event_id": evt_id, "authorized_by": final_officer}
     finally:
         conn.close()
 
