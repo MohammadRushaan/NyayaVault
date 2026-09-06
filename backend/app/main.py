@@ -226,10 +226,16 @@ def search_documents(
 async def ingest_document(
     case_number: str = Form(...),
     doc_type: str = Form(...),
+    officer_id: Optional[str] = Form(None),   # <-- ADD THIS
+    actor_role: Optional[str] = Form(None),   # <-- ADD THIS
     file: Optional[UploadFile] = File(None),
     text_content: Optional[str] = Form(None),
     current_user: UserAuth = Depends(get_current_user)
 ):
+    # Fallback to current_user if not supplied in form
+    final_officer = officer_id if officer_id else current_user.officer_id
+    final_role = actor_role if actor_role else current_user.role
+
     doc_id = f"DOC-{uuid.uuid4().hex[:10].upper()}"
     
     if file:
@@ -241,19 +247,14 @@ async def ingest_document(
     else:
         raise HTTPException(status_code=400, detail="Provide a file or text content.")
 
-    # 1. SHA-256 Digest of Raw Ingested Bytes
     sha256_digest = compute_sha256(raw_bytes)
-    
-    # 2. Bilingual Demographic PII Scrubbing
     redacted_preview = redact_pii(raw_str)
 
-    # 3. Envelope Encryption to Disk (.enc sealed container)
     enc_path = os.path.join(STORAGE_DIR, f"{doc_id}.enc")
     envelope = encrypt_document(raw_bytes)
     with open(enc_path, "w") as f:
         json.dump(envelope, f)
 
-    # 4. Merkle Sequential Hash Chaining
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     last_block = cursor.execute("SELECT block_hash FROM ledger ORDER BY id DESC LIMIT 1").fetchone()
@@ -264,25 +265,33 @@ async def ingest_document(
 
     current_timestamp = get_ist_iso()
 
-    # 5. Commit to Database
+    # Commit with the typed officer details:
     cursor.execute('''
         INSERT INTO ledger (doc_id, case_number, doc_type, officer_id, actor_role, sha256_hash, prev_hash, block_hash, masked_text, raw_text, encrypted_file_path, timestamp)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
-        doc_id, case_number, doc_type, current_user.officer_id, current_user.role,
+        doc_id, case_number, doc_type, final_officer, final_role,
         sha256_digest, prev_hash, block_hash, redacted_preview, raw_str, enc_path, current_timestamp
     ))
     
-    # Record Initial Custodial Inception
+    # Record Inception with the typed officer details:
     cursor.execute('''
         INSERT INTO custody_timeline (event_id, doc_id, from_entity, to_entity, purpose, authorized_by, verified_hash, timestamp)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (f"EVT-{uuid.uuid4().hex[:8].upper()}", doc_id, "Evidence Inception", "Station Malkhana", f"Seized & Sealed under Sec 63 BSA by {current_user.officer_id}", current_user.officer_id, sha256_digest, current_timestamp))
+    ''', (
+        f"EVT-{uuid.uuid4().hex[:8].upper()}", 
+        doc_id, 
+        "Evidence Inception", 
+        "Station Malkhana", 
+        f"Seized & Sealed under Sec 63 BSA by {final_officer}", 
+        final_officer, 
+        sha256_digest, 
+        current_timestamp
+    ))
     
     conn.commit()
     conn.close()
 
-    # 6. Generate High-Density Base64 Malkhana QR
     qr_b64 = generate_malkhana_qr(case_number, doc_id, sha256_digest)
 
     return {

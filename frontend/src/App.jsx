@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
+  Sun,
+  Moon,
   ShieldCheck,
   ShieldAlert,
   Award,
@@ -43,7 +45,7 @@ const SAMPLE_BILINGUAL_FIR = `प्रथम सूचना रिपोर्
 
 4. प्रार्थी / शिकायतकर्ता (Complainant Details):
    - नाम (Name): राजेश कुमार शर्मा (Rajesh Kumar Sharma)
-   - आधार संख्या (Aadhaar No): [REDACTED_AADHAAR]
+   - आधार संख्या (Aadhaar No): 9182 4739 1029
    - मोबाइल नंबर (Phone): +91 98371 44520
    - पता (Address): मकान नं. 14, सिविल लाइन्स, नई दिल्ली
 
@@ -125,6 +127,35 @@ export default function App() {
   const [warpedBlobFile, setWarpedBlobFile] = useState(null);
   const smoothedCornersRef = useRef(null);
 
+  
+
+  // Theme State: defaults to dark or loads saved preference
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem("nyayavault_theme") || "dark";
+  });
+
+  const toggleTheme = () => {
+    setTheme((prev) => {
+      const next = prev === "dark" ? "light" : "dark";
+      localStorage.setItem("nyayavault_theme", next);
+      return next;
+    });
+  };
+
+  const isDark = theme === "dark";
+
+  // Dynamic Theme Classes
+  const t = {
+    bgApp: isDark ? "bg-slate-950 text-slate-100" : "bg-slate-100 text-slate-900",
+    header: isDark ? "bg-slate-900/95 border-slate-800" : "bg-white/95 border-slate-200 shadow-sm",
+    card: isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200 shadow-sm",
+    innerBox: isDark ? "bg-slate-950 border-slate-800" : "bg-slate-50 border-slate-200",
+    input: isDark ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-300 text-slate-900",
+    textPrimary: isDark ? "text-slate-100" : "text-slate-900",
+    textSecondary: isDark ? "text-slate-400" : "text-slate-600",
+    subnav: isDark ? "bg-slate-900/50 border-slate-800/80" : "bg-slate-200/60 border-slate-300",
+  };
+
   // Sync Ingestion tab fields whenever Active Officer changes
   useEffect(() => {
     const selectedObj = officers.find((o) => o.officer_id === currentOfficer);
@@ -183,15 +214,38 @@ export default function App() {
 
   const fetchLedger = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/ledger/history`, { headers: fetchAuthHeaders() });
+      // Build query parameters for search and classification filtering
+      const params = new URLSearchParams();
+      if (searchQuery.trim()) {
+        params.append("query", searchQuery.trim());
+      }
+      if (docTypeFilter && docTypeFilter !== "All") {
+        params.append("doc_type", docTypeFilter);
+      }
+
+      const queryString = params.toString();
+      const endpoint = queryString 
+        ? `${API_BASE}/documents/search?${queryString}` 
+        : `${API_BASE}/ledger/history`;
+
+      const res = await axios.get(endpoint, { headers: fetchAuthHeaders() });
       setLedgerHistory(res.data);
       if (res.data.length > 0 && !selectedLedgerItem) {
         setSelectedLedgerItem(res.data[0]);
       }
     } catch (err) {
-      console.error("Ledger history error:", err);
+      console.error("Ledger query error:", err);
     }
   };
+
+  // Sorting State for Table Columns
+  const [sortField, setSortField] = useState("id");
+  const [sortAsc, setSortAsc] = useState(false);
+
+  // Automatically re-fetch whenever the dropdown filter changes
+  useEffect(() => {
+    fetchLedger();
+  }, [docTypeFilter]);
 
   // OpenCV Frame Processor Loop
   useEffect(() => {
@@ -558,6 +612,8 @@ export default function App() {
     const data = new FormData();
     data.append("case_number", caseNo);
     data.append("doc_type", docType);
+    data.append("officer_id", officerId);
+    data.append("actor_role", role);
 
     if (inputMode === "file" && uploadedFile) {
       data.append("file", uploadedFile);
@@ -566,7 +622,13 @@ export default function App() {
     }
 
     try {
-      const res = await axios.post(`${API_BASE}/documents/ingest`, data, { headers: fetchAuthHeaders() });
+      const res = await axios.post(`${API_BASE}/documents/ingest`, data, { 
+        headers: {
+          ...fetchAuthHeaders(),
+          "X-Officer-Id": officerId
+        }
+      });
+      
       const qrDataUrl = `data:image/png;base64,${res.data.malkhana_qr}`;
       setIngestOutput({
         ...res.data,
@@ -685,8 +747,29 @@ export default function App() {
     }
   };
 
+  // Sort ledger items in memory by active column
+  const sortedLedgerHistory = [...ledgerHistory].sort((a, b) => {
+    let aVal = a[sortField] ?? "";
+    let bVal = b[sortField] ?? "";
+    if (typeof aVal === "string") aVal = aVal.toLowerCase();
+    if (typeof bVal === "string") bVal = bVal.toLowerCase();
+
+    if (aVal < bVal) return sortAsc ? -1 : 1;
+    if (aVal > bVal) return sortAsc ? 1 : -1;
+    return 0;
+  });
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortAsc(!sortAsc);
+    } else {
+      setSortField(field);
+      setSortAsc(true);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased selection:bg-emerald-500 selection:text-white">
+    <div className={`min-h-screen flex flex-col font-sans antialiased transition-colors duration-200 selection:bg-emerald-500 selection:text-white ${t.bgApp}`}>
       {/* OpenCV Camera Modal */}
       {cameraOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
@@ -824,7 +907,7 @@ export default function App() {
       )}
 
       {/* ================= HEADER WITH CUSTOM NYAYAVAULT JUDICIAL EMBLEM ================= */}
-      <header className="border-b border-slate-800 bg-slate-900/95 backdrop-blur sticky top-0 z-40 px-8 py-3.5 flex flex-wrap justify-between items-center gap-4">
+      <header className={`border-b backdrop-blur sticky top-0 z-40 px-8 py-3.5 flex flex-wrap justify-between items-center gap-4 transition-colors duration-200 ${t.header}`}>
         {/* ================= NYAYAVAULT JUDICIAL SEAL (REFERENCE-BASED) ================= */}
         <div className="flex items-center gap-3.5">
           {/* High-Contrast Judicial Seal Medallion */}
@@ -969,12 +1052,35 @@ export default function App() {
           >
             <HardDriveDownload className="w-4 h-4" /> Vault Backup
           </button>
+          {/* Light / Dark Mode Toggle Button */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-xl border transition ${
+              isDark
+                ? "bg-slate-800 hover:bg-slate-700 border-slate-700 text-amber-300"
+                : "bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700"
+            }`}
+            title={`Switch to ${isDark ? "Light" : "Dark"} Mode`}
+          >
+            {isDark ? (
+              <>
+                <Sun className="w-4 h-4 text-amber-400" />
+                <span>Light Mode</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-4 h-4 text-indigo-600" />
+                <span>Dark Mode</span>
+              </>
+            )}
+          </button>
         </div>
       </header>
 
       {/* Navigation Sub-Header */}
-      <div className="bg-slate-900/50 border-b border-slate-800/80 px-8 py-2.5 flex justify-between items-center">
-        <div className="flex bg-slate-950 border border-slate-800 p-1 rounded-xl">
+      <div className={`border-b px-8 py-2.5 flex justify-between items-center transition-colors duration-200 ${t.subnav}`}>
+        <div className={`flex border p-1 rounded-xl transition-colors duration-200 ${t.innerBox}`}>
           <button onClick={() => setTab("command")} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${tab === "command" ? "bg-emerald-600 text-white shadow-md" : "text-slate-400 hover:text-white"}`}>
             <Activity className="w-3.5 h-3.5" /> 1. COMMAND DASHBOARD
           </button>
@@ -995,21 +1101,21 @@ export default function App() {
         {tab === "command" && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl relative overflow-hidden">
+              <div className={`p-5 rounded-2xl shadow-xl relative overflow-hidden border transition-colors duration-200 ${t.card}`}>
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Encrypted Records</p>
                 <h3 className="text-3xl font-extrabold text-emerald-400 mt-2">{metrics.total_documents}</h3>
                 <p className="text-[11px] text-slate-500 mt-1 font-mono">AES-256-GCM Envelope Sealed</p>
               </div>
 
-              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl relative overflow-hidden">
+              <div className={`p-5 rounded-2xl shadow-xl relative overflow-hidden border transition-colors duration-200 ${t.card}`}>
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 to-blue-500" />
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Active Police Cases</p>
                 <h3 className="text-3xl font-extrabold text-cyan-400 mt-2">{metrics.active_cases}</h3>
                 <p className="text-[11px] text-slate-500 mt-1 font-mono">Under Lawful Chain Custody</p>
               </div>
 
-              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl relative overflow-hidden">
+              <div className={`p-5 rounded-2xl shadow-xl relative overflow-hidden border transition-colors duration-200 ${t.card}`}>
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 to-red-600" />
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Integrity Breaches Flagged</p>
                 <h3 className="text-3xl font-extrabold text-rose-400 mt-2">{metrics.security_alerts}</h3>
@@ -1027,6 +1133,7 @@ export default function App() {
                     placeholder="Search Case No, UUID, or redacted narrative..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") fetchLedger(); }}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
@@ -1036,31 +1143,43 @@ export default function App() {
                   className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-300 focus:outline-none focus:border-emerald-500 cursor-pointer"
                 >
                   <option value="All">All Document Classifications</option>
-                  <option value="First Information Report (FIR)">FIR</option>
+                  <option value="First Information Report (FIR)">First Information Report (FIR)</option>
+                  <option value="Physical Seizure Memo (Malkhana Reg. 19)">Physical Seizure Memo (Malkhana Reg. 19)</option>
                   <option value="Witness Statement">Witness Statement</option>
                   <option value="Charge Sheet">Charge Sheet</option>
                   <option value="Forensic Report">Forensic Report</option>
-                  <option value="Malkhana Seizure Memo">Malkhana Seizure Memo</option>
                 </select>
-                <button onClick={fetchLedger} className="bg-emerald-600 hover:bg-emerald-500 text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-2 text-white">
+                <button 
+                  type="button"
+                  onClick={fetchLedger} 
+                  className="bg-emerald-600 hover:bg-emerald-500 text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-2 text-white"
+                >
                   <RefreshCw className="w-3.5 h-3.5" /> Filter
                 </button>
               </div>
-
+  
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="text-slate-400 border-b border-slate-800 text-[11px] uppercase tracking-wider font-semibold">
+                  <thead className="text-slate-400 border-b border-slate-800 text-[11px] uppercase tracking-wider font-semibold select-none">
                     <tr>
-                      <th className="pb-3 px-2">Document ID</th>
-                      <th className="pb-3 px-2">Case Number</th>
-                      <th className="pb-3 px-2">Classification</th>
-                      <th className="pb-3 px-2">Certifying Officer</th>
+                      <th onClick={() => handleSort("doc_id")} className="pb-3 px-2 cursor-pointer hover:text-emerald-400">
+                        Document ID {sortField === "doc_id" ? (sortAsc ? "▲" : "▼") : ""}
+                      </th>
+                      <th onClick={() => handleSort("case_number")} className="pb-3 px-2 cursor-pointer hover:text-emerald-400">
+                        Case Number {sortField === "case_number" ? (sortAsc ? "▲" : "▼") : ""}
+                      </th>
+                      <th onClick={() => handleSort("doc_type")} className="pb-3 px-2 cursor-pointer hover:text-emerald-400">
+                        Classification {sortField === "doc_type" ? (sortAsc ? "▲" : "▼") : ""}
+                      </th>
+                      <th onClick={() => handleSort("officer_id")} className="pb-3 px-2 cursor-pointer hover:text-emerald-400">
+                        Certifying Officer {sortField === "officer_id" ? (sortAsc ? "▲" : "▼") : ""}
+                      </th>
                       <th className="pb-3 px-2">Genesis SHA-256 Digest</th>
                       <th className="pb-3 px-2 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-850">
-                    {ledgerHistory.map((d) => (
+                    {sortedLedgerHistory.map((d) => (
                       <tr key={d.doc_id} className="hover:bg-slate-800/40 transition">
                         <td className="py-3 px-2 font-mono text-emerald-400 font-medium">{d.doc_id}</td>
                         <td className="py-3 px-2 font-semibold text-slate-200">{d.case_number}</td>
@@ -1082,7 +1201,7 @@ export default function App() {
                         </td>
                       </tr>
                     ))}
-                    {ledgerHistory.length === 0 && (
+                    {sortedLedgerHistory.length === 0 && (
                       <tr>
                         <td colSpan={6} className="py-8 text-center text-slate-500">
                           No evidence records in ledger matching criteria.
@@ -1123,7 +1242,7 @@ export default function App() {
         {/* Tab 2: Ingestion & OCR */}
         {tab === "ingest" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl flex flex-col space-y-4">
+            <div className={`p-6 rounded-2xl shadow-xl flex flex-col space-y-4 border transition-colors duration-200 ${t.card}`}>
               <div className="flex justify-between items-center">
                 <h2 className="text-sm font-bold flex items-center space-x-2 text-slate-200 uppercase tracking-wider">
                   <Lock className="h-4 w-4 text-emerald-400" />
@@ -1292,7 +1411,7 @@ export default function App() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Ledger Blocks Sidebar */}
-              <div className="lg:col-span-1 bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col max-h-[80vh] shadow-xl">
+              <div className={`lg:col-span-1 rounded-2xl p-4 flex flex-col max-h-[80vh] shadow-xl border transition-colors duration-200 ${t.card}`}>
                 <div className="flex justify-between items-center mb-3">
                   <h2 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
                     <History className="h-4 w-4 text-emerald-400" /> Immutable Chain ({ledgerHistory.length} Blocks)
@@ -1329,7 +1448,7 @@ export default function App() {
 
               {/* Custody Movement & Chained Timeline */}
               <div className="lg:col-span-2 space-y-5">
-                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4 shadow-xl">
+                <div className={`p-5 rounded-2xl space-y-4 shadow-xl border transition-colors duration-200 ${t.card}`}>
                   <h2 className="font-bold text-xs uppercase tracking-wider text-slate-100 flex items-center gap-2">
                     <ArrowRight className="w-4 h-4 text-emerald-400" /> Log Physical Evidence Movement
                   </h2>
@@ -1385,7 +1504,7 @@ export default function App() {
                 </div>
 
                 {/* Chronological Timeline Feed */}
-                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4 shadow-xl">
+                <div className={`p-5 rounded-2xl space-y-4 shadow-xl border transition-colors duration-200 ${t.card}`}>
                   <div className="flex justify-between items-center">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-slate-100 flex items-center gap-2">
                       <Award className="w-4 h-4 text-emerald-400" /> Custody Trail: <span className="font-mono text-emerald-400 font-bold">{selectedDocId || "Select a Document"}</span>

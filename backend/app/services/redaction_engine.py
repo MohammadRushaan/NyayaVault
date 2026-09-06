@@ -1,62 +1,71 @@
 import re
 from typing import Tuple, List, Dict, Any
 
-import re
-
-# Comprehensive regex patterns for Indian identifiers
-AADHAAR_PATTERN = re.compile(r'\b[2-9]\d{3}\s?\d{4}\s?\d{4}\b')
-PAN_PATTERN = re.compile(r'\b[A-Z]{5}[0-9]{4}[A-Z]\b')
-PHONE_PATTERN = re.compile(r'(\+91[\-\s]?)?[6-9]\d{9}\b')
-EMAIL_PATTERN = re.compile(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b')
+# Compiled regex definitions
+PATTERNS = [
+    # 1. 12-digit Indian National ID (Aadhaar format: 12 digits, leading digit 2-9)
+    ("AADHAAR", r"\b[2-9]\d{3}[\s\-]?\d{4}[\s\-]?\d{4}\b"),
+    # 2. Contextual Indian ID fallback (Hindi Devanagari & English keywords)
+    ("AADHAAR", r"(?<=(?:आधार(?:\s*संख्या)?|Aadhaar(?:\s*No)?)\s*[:\-]?\s*)[0-9 -]{12,16}\b"),
+    # 3. Permanent Account Number (PAN)
+    ("PAN", r"\b[A-Z]{5}[0-9]{4}[A-Z]\b"),
+    # 4. Indian Mobile Numbers
+    ("PHONE", r"(?:\+91[\-\s]?|0)?[6-9]\d{9}\b"),
+    # 5. Email Addresses
+    ("EMAIL", r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b"),
+    # 6. Bilingual Identity Cues (Name / Complainant / Victim / Witness)
+    ("IDENTITY", r"(?<=(?:complainant|victim|witness|नाम|पीड़िता|गवाह)[\s:]+)([^\s,\n]+(?:\s+[^\s,\n]+)?)")
+]
 
 def redact_pii(text: str) -> str:
-    """Redacts Aadhaar, PAN, phone numbers, and sensitive demographic data."""
+    """
+    Scans and masks demographic PII in English and Devanagari Hindi text.
+    Complies with Section 72 BNS, 2023.
+    """
     if not text:
         return ""
-    
-    redacted = text
-    redacted = AADHAAR_PATTERN.sub('[REDACTED_AADHAAR]', redacted)
-    redacted = PAN_PATTERN.sub('[REDACTED_PAN]', redacted)
-    redacted = PHONE_PATTERN.sub('[REDACTED_PHONE]', redacted)
-    redacted = EMAIL_PATTERN.sub('[REDACTED_EMAIL]', redacted)
-    
-    return redacted
+
+    scrubbed = text
+    for pii_type, regex in PATTERNS:
+        replacement = f"[REDACTED_{pii_type}]"
+        scrubbed = re.sub(regex, replacement, scrubbed, flags=re.IGNORECASE)
+
+    return scrubbed
 
 def bilingual_redact_pii(text: str) -> Tuple[str, List[Dict[str, Any]]]:
     """
-    Identifies and redacts Personally Identifiable Information (PII)
-    in English and Hindi (Devanagari) under Section 72 BNS, 2023.
+    Identifies PII entities, records their values for audit trails,
+    and returns the cleanly masked document text.
     """
     if not text:
         return "", []
 
-    masked = text
-    entities = []
+    entities: List[Dict[str, Any]] = []
+    
+    # Collect all non-overlapping spans
+    spans: List[Tuple[int, int, str, str]] = []
 
-    # 1. Aadhaar Number Pattern (12 digits with optional spaces/hyphens)
-    for match in re.finditer(r"\b[2-9]\d{3}[\s\-]?\d{4}[\s\-]?\d{4}\b", masked):
-        val = match.group()
-        entities.append({"type": "AADHAAR", "value": val})
-        masked = masked.replace(val, "[REDACTED_AADHAAR]")
+    for pii_type, regex in PATTERNS:
+        for match in re.finditer(regex, text, flags=re.IGNORECASE):
+            start, end = match.span()
+            val = match.group()
+            
+            # Avoid overlapping previously matched regions
+            if any(s <= start < e or s < end <= e for s, e, _, _ in spans):
+                continue
+                
+            spans.append((start, end, pii_type, val))
 
-    # 2. Indian Mobile Numbers (+91, 0, or standard 10 digits starting with 6-9)
-    for match in re.finditer(r"(?:\+91[\-\s]?|0)?[6-9]\d{9}\b", masked):
-        val = match.group()
-        entities.append({"type": "PHONE", "value": val})
-        masked = masked.replace(val, "[REDACTED_PHONE]")
+    # Sort spans from end to start so index replacement remains accurate
+    spans.sort(key=lambda x: x[0], reverse=True)
 
-    # 3. PAN Identifiers ([A-Z]{5}[0-9]{4}[A-Z]{1})
-    for match in re.finditer(r"\b[A-Z]{5}[0-9]{4}[A-Z]{1}\b", masked):
-        val = match.group()
-        entities.append({"type": "PAN", "value": val})
-        masked = masked.replace(val, "[REDACTED_PAN]")
+    masked_text = text
+    for start, end, pii_type, val in spans:
+        entities.append({"type": pii_type, "value": val})
+        placeholder = f"[REDACTED_{pii_type}]"
+        masked_text = masked_text[:start] + placeholder + masked_text[end:]
 
-    # 4. Bilingual Identity Scrubbing (Complainant, Victim, Witness, Hindi cues)
-    name_pattern = r"(?:complainant|victim|witness|नाम|पीड़िता|गवाह)[\s:]+([^\s,]+(?:\s+[^\s,]+)?)"
-    for match in re.finditer(name_pattern, masked, re.IGNORECASE):
-        val = match.group(1)
-        if val and not val.startswith("[REDACTED"):
-            entities.append({"type": "IDENTITY", "value": val})
-            masked = masked.replace(val, "[REDACTED_IDENTITY]")
-
-    return masked, entities
+    # Reverse entities list so it matches reading order
+    entities.reverse()
+    
+    return masked_text, entities
