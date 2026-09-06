@@ -609,10 +609,11 @@ export default function App() {
     }
 
     const data = new FormData();
-    data.append("case_number", caseNo || "FIR-2026-DEL-0891");
-    data.append("doc_type", docType || "First Information Report (FIR)");
-    data.append("officer_id", officerId || currentOfficer || "IO_SHARMA");
-    data.append("actor_role", role || "Investigating Officer");
+    data.append("case_number", caseNo.trim() || "FIR-2026-DEL-0891");
+    data.append("doc_type", docType.trim() || "First Information Report (FIR)");
+    // Send whatever you typed into the form:
+    data.append("officer_id", officerId.trim() || currentOfficer);
+    data.append("actor_role", role.trim() || "Investigating Officer");
 
     if (inputMode === "file" && uploadedFile) {
       data.append("file", uploadedFile);
@@ -623,12 +624,13 @@ export default function App() {
     try {
       const res = await axios.post(`${API_BASE}/documents/ingest`, data, {
         headers: {
-          "X-Officer-Id": officerId || currentOfficer || "IO_SHARMA"
+          // Keep the authorized session header intact
+          "X-Officer-Id": currentOfficer || "IO_SHARMA"
         }
       });
 
       if (res && res.data) {
-        const qrDataUrl = res.data.malkhana_qr 
+        const qrDataUrl = res.data.malkhana_qr
           ? (res.data.malkhana_qr.startsWith("data:") ? res.data.malkhana_qr : `data:image/png;base64,${res.data.malkhana_qr}`)
           : "";
 
@@ -652,17 +654,15 @@ export default function App() {
           reader.readAsDataURL(uploadedFile);
         }
 
-        // Run background ledger sync silently without letting errors trigger an alert
         setTimeout(() => {
           loadDashboard().catch(() => {});
           fetchLedger().catch(() => {});
         }, 300);
       }
     } catch (err) {
-      console.error("Ingestion execution caught:", err);
-      // If the backend actually returned an error payload, display it
-      const msg = err.response?.data?.detail || err.message;
-      alert(`Ingestion notice: ${msg}`);
+      console.error("Ingestion failed:", err);
+      const detail = err.response?.data?.detail || err.message;
+      alert(`Ingestion error: ${detail}`);
     }
   };
 

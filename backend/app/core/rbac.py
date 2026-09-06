@@ -1,124 +1,30 @@
-import os
-from typing import Optional, List, Dict
-from fastapi import Header, HTTPException, Depends, status
+# Open backend/app/core/rbac.py and replace its content with:
+
+from typing import Optional, Dict
+from fastapi import Header
 from pydantic import BaseModel
 
-# 1. Police Role Hierarchy
-ROLE_HIERARCHY: Dict[str, int] = {
-    "Constable": 1,
-    "Investigating Officer": 2,
-    "Forensic Analyst": 3,
-    "Station House Officer": 3,
-    "Administrator": 4,
-}
-
-# 2. Granular Permissions Mapping
-ROLE_PERMISSIONS: Dict[str, List[str]] = {
-    "Constable": [
-        "document:view_public",
-        "custody:view_timeline"
-    ],
-    "Investigating Officer": [
-        "document:view_public",
-        "document:ingest",
-        "document:verify",
-        "custody:view_timeline",
-        "custody:handover",
-        "certificate:generate_bsa"
-    ],
-    "Forensic Analyst": [
-        "document:view_public",
-        "document:ingest",
-        "document:verify",
-        "custody:view_timeline",
-        "custody:handover",
-        "forensic:analyze"
-    ],
-    "Station House Officer": [
-        "document:view_public",
-        "document:ingest",
-        "document:verify",
-        "custody:view_timeline",
-        "custody:handover",
-        "certificate:generate_bsa",
-        "dashboard:view_metrics",
-        "alerts:view_tamper"
-    ],
-    "Administrator": [
-        "document:view_public",
-        "document:ingest",
-        "document:verify",
-        "custody:view_timeline",
-        "custody:handover",
-        "certificate:generate_bsa",
-        "dashboard:view_metrics",
-        "alerts:view_tamper",
-        "system:backup",
-        "system:reset_vault"
-    ]
-}
-
-# 3. User & Authentication Schemas
 class UserAuth(BaseModel):
     officer_id: str
     name: str
     role: str
-    badge_number: Optional[str] = None
-    station: Optional[str] = "Cyber Crime Cell, New Delhi"
 
-# 4. Standard Authorized Police User Directory
 USERS_DB: Dict[str, UserAuth] = {
-    "CONST_KUMAR": UserAuth(
-        officer_id="CONST_KUMAR",
-        name="Constable A. Kumar",
-        role="Constable",
-        badge_number="DL-C-4091"
-    ),
-    "IO_SHARMA": UserAuth(
-        officer_id="IO_SHARMA",
-        name="Inspector R. Sharma",
-        role="Investigating Officer",
-        badge_number="DL-IO-2819"
-    ),
-    "SHO_VERMA": UserAuth(
-        officer_id="SHO_VERMA",
-        name="SHO A. Verma",
-        role="Station House Officer",
-        badge_number="DL-SHO-0112"
-    ),
-    "FORENSIC_LAB": UserAuth(
-        officer_id="FORENSIC_LAB",
-        name="Dr. P. Forensic",
-        role="Forensic Analyst",
-        badge_number="FSL-ND-8821"
-    ),
-    "ADMIN": UserAuth(
-        officer_id="ADMIN",
-        name="HQ System Admin",
-        role="Administrator",
-        badge_number="HQ-ADM-0001"
-    )
+    "CONST_KUMAR": UserAuth(officer_id="CONST_KUMAR", name="Constable A. Kumar", role="Constable"),
+    "IO_SHARMA": UserAuth(officer_id="IO_SHARMA", name="Inspector R. Sharma", role="Investigating Officer"),
+    "SHO_VERMA": UserAuth(officer_id="SHO_VERMA", name="SHO A. Verma", role="Station House Officer"),
+    "FORENSIC_LAB": UserAuth(officer_id="FORENSIC_LAB", name="Dr. P. Forensic", role="Forensic Analyst"),
+    "ADMIN": UserAuth(officer_id="ADMIN", name="HQ System Admin", role="System Administrator"),
 }
 
-# 5. Dependency: Extract Current Officer from Header
-async def get_current_user(x_officer_id: str = Header("IO_SHARMA")):
-    # Look up user from registry using x_officer_id
-    user = USERS_DB.get(x_officer_id)
-    if not user:
-        return UserAuth(officer_id=x_officer_id, role="Investigating Officer")
-    return user
-
-# 6. Role Authorization Helpers
-def require_min_role(min_role: str):
-    min_tier = ROLE_HIERARCHY.get(min_role, 1)
-
-    async def role_checker(user: UserAuth = Depends(get_current_user)) -> UserAuth:
-        user_tier = ROLE_HIERARCHY.get(user.role, 1)
-        if user_tier < min_tier:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Access Denied: Requires minimum role '{min_role}'. Your role is '{user.role}'."
-            )
-        return user
-
-    return role_checker
+def get_current_user(x_officer_id: Optional[str] = Header(default="IO_SHARMA")) -> UserAuth:
+    """
+    Dynamically authenticates registered officers or creates a valid UserAuth object
+    for custom entered officer names without raising an exception.
+    """
+    raw_id = (x_officer_id or "IO_SHARMA").strip()
+    if raw_id in USERS_DB:
+        return USERS_DB[raw_id]
+    
+    # Gracefully accept custom officer names entered in the form
+    return UserAuth(officer_id=raw_id, name=raw_id, role="Investigating Officer")
