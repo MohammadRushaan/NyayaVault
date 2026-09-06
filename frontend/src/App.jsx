@@ -62,7 +62,7 @@ const SAMPLE_BILINGUAL_FIR = `प्रथम सूचना रिपोर्
 
 export default function App() {
   // Navigation & Role State
-  const [tab, setTab] = useState("command"); // 'command' | 'ingest' | 'custody' | 'court'
+  const [tab, setTab] = useState("command");
   const [currentOfficer, setCurrentOfficer] = useState("IO_SHARMA");
   const [officers, setOfficers] = useState([]);
 
@@ -127,7 +127,9 @@ export default function App() {
   const [warpedBlobFile, setWarpedBlobFile] = useState(null);
   const smoothedCornersRef = useRef(null);
 
-  
+  // Sorting State for Table Columns
+  const [sortField, setSortField] = useState("id");
+  const [sortAsc, setSortAsc] = useState(false);
 
   // Theme State: defaults to dark or loads saved preference
   const [theme, setTheme] = useState(() => {
@@ -144,16 +146,22 @@ export default function App() {
 
   const isDark = theme === "dark";
 
-  // Dynamic Theme Classes
+  // Comprehensive Adaptive Design Tokens
   const t = {
-    bgApp: isDark ? "bg-slate-950 text-slate-100" : "bg-slate-100 text-slate-900",
-    header: isDark ? "bg-slate-900/95 border-slate-800" : "bg-white/95 border-slate-200 shadow-sm",
-    card: isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200 shadow-sm",
-    innerBox: isDark ? "bg-slate-950 border-slate-800" : "bg-slate-50 border-slate-200",
-    input: isDark ? "bg-slate-950 border-slate-800 text-slate-200" : "bg-white border-slate-300 text-slate-900",
-    textPrimary: isDark ? "text-slate-100" : "text-slate-900",
-    textSecondary: isDark ? "text-slate-400" : "text-slate-600",
-    subnav: isDark ? "bg-slate-900/50 border-slate-800/80" : "bg-slate-200/60 border-slate-300",
+    bgApp: isDark ? "bg-[#070c18] text-slate-100" : "bg-slate-50 text-slate-900",
+    header: isDark ? "bg-[#0a1020]/95 border-slate-800" : "bg-white/95 border-slate-200 shadow-sm",
+    titlePrimary: isDark ? "text-white" : "text-slate-900",
+    card: isDark ? "bg-[#0d1527] border-slate-800 text-slate-100 shadow-xl" : "bg-white border-slate-200 text-slate-800 shadow-sm",
+    cardInner: isDark ? "bg-[#070d1a] border-slate-800" : "bg-slate-50 border-slate-200",
+    input: isDark 
+      ? "bg-[#060a14] border-slate-800 text-slate-100 placeholder-slate-500 focus:border-emerald-500" 
+      : "bg-white border-slate-300 text-slate-900 placeholder-slate-400 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600",
+    textMuted: isDark ? "text-slate-400" : "text-slate-500",
+    pillNav: isDark ? "bg-slate-900 border-slate-700 text-slate-300" : "bg-slate-100 border-slate-300 text-slate-700",
+    border: isDark ? "border-slate-800" : "border-slate-200",
+    tableRowHover: isDark ? "hover:bg-slate-800/40" : "hover:bg-slate-100/70",
+    subnav: isDark ? "bg-slate-900/50 border-slate-800/80" : "bg-slate-100/70 border-slate-200",
+    innerBox: isDark ? "bg-slate-950 border-slate-800" : "bg-white border-slate-200"
   };
 
   // Sync Ingestion tab fields whenever Active Officer changes
@@ -214,7 +222,6 @@ export default function App() {
 
   const fetchLedger = async () => {
     try {
-      // Build query parameters for search and classification filtering
       const params = new URLSearchParams();
       if (searchQuery.trim()) {
         params.append("query", searchQuery.trim());
@@ -238,14 +245,22 @@ export default function App() {
     }
   };
 
-  // Sorting State for Table Columns
-  const [sortField, setSortField] = useState("id");
-  const [sortAsc, setSortAsc] = useState(false);
-
-  // Automatically re-fetch whenever the dropdown filter changes
   useEffect(() => {
     fetchLedger();
   }, [docTypeFilter]);
+
+  // Session Storage Form Persistence
+  useEffect(() => {
+    const savedText = sessionStorage.getItem("nyaya_raw_text");
+    const savedCase = sessionStorage.getItem("nyaya_case_no");
+    if (savedText) setRawText(savedText);
+    if (savedCase) setCaseNo(savedCase);
+  }, []);
+
+  const handleTextChange = (val) => {
+    setRawText(val);
+    sessionStorage.setItem("nyaya_raw_text", val);
+  };
 
   // OpenCV Frame Processor Loop
   useEffect(() => {
@@ -449,20 +464,6 @@ export default function App() {
     setCameraStage("adjust");
   };
 
-  // 1. Session Storage Form Persistence
-  useEffect(() => {
-    const savedText = sessionStorage.getItem("nyaya_raw_text");
-    const savedCase = sessionStorage.getItem("nyaya_case_no");
-    if (savedText) setRawText(savedText);
-    if (savedCase) setCaseNo(savedCase);
-  }, []);
-
-  const handleTextChange = (val) => {
-    setRawText(val);
-    sessionStorage.setItem("nyaya_raw_text", val);
-  };
-
-  // 2. Aspect-Ratio Corrected Homography Warping
   const executePerspectiveWarp = () => {
     if (!capturedSnapshotUrl) return;
 
@@ -479,12 +480,9 @@ export default function App() {
         y: Math.round(c.y * img.height)
       }));
 
-      // Calculate Euclidean edge lengths
       const widthTop = Math.hypot(c1.x - c0.x, c1.y - c0.y);
       const widthBottom = Math.hypot(c2.x - c3.x, c2.y - c3.y);
       const targetW = Math.round(Math.max(widthTop, widthBottom));
-
-      // Calculate height based on A4 / Legal ratio (~1.414) to prevent text distortion
       const targetH = Math.round(targetW * 1.414);
 
       const dstCanvas = warpedCanvasRef.current || document.createElement("canvas");
@@ -540,7 +538,6 @@ export default function App() {
     a.click();
   };
 
-  // 1. Separate Physical QR Verification Handler
   const handleQrUploadAndVerify = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -576,7 +573,6 @@ export default function App() {
     }
   };
 
-  // 2. Separate Raw File / Content Verification Handler
   const executeVerification = async () => {
     const data = new FormData();
     data.append("expected_hash", benchmarkHash);
@@ -601,7 +597,6 @@ export default function App() {
     }
   };
 
-  // Ingest Document
   const submitIngestion = async (e) => {
     e.preventDefault();
     if (inputMode === "file" && !uploadedFile) {
@@ -655,8 +650,6 @@ export default function App() {
     }
   };
 
-  // Custody Timeline Handover
-  // Locate handleHandover in frontend/src/App.jsx
   const handleHandover = async (e) => {
     e.preventDefault();
     if (!selectedDocId) return;
@@ -670,7 +663,6 @@ export default function App() {
           to_entity: handoverTo,
           purpose: handoverPurpose
         },
-        // Verify this 3rd argument is present:
         { headers: fetchAuthHeaders() }
       );
       if (res.status === 200) {
@@ -694,7 +686,6 @@ export default function App() {
     }
   };
 
-  // 1-Click Tamper Simulation
   const simulateTamper = () => {
     const altered = verifyText.replace("₹1,50,000", "₹15,00,000 (FRAUD AMOUNT ALTERED)");
     setVerifyText(altered);
@@ -746,7 +737,6 @@ export default function App() {
     }
   };
 
-  // Sort ledger items in memory by active column
   const sortedLedgerHistory = [...ledgerHistory].sort((a, b) => {
     let aVal = a[sortField] ?? "";
     let bVal = b[sortField] ?? "";
@@ -905,140 +895,67 @@ export default function App() {
         </div>
       )}
 
-      {/* ================= HEADER WITH CUSTOM NYAYAVAULT JUDICIAL EMBLEM ================= */}
+      {/* ================= HEADER WITH THEME-AWARE STYLING ================= */}
       <header className={`border-b backdrop-blur sticky top-0 z-40 px-8 py-3.5 flex flex-wrap justify-between items-center gap-4 transition-colors duration-200 ${t.header}`}>
-        {/* ================= NYAYAVAULT JUDICIAL SEAL (REFERENCE-BASED) ================= */}
         <div className="flex items-center gap-3.5">
-          {/* High-Contrast Judicial Seal Medallion */}
+          {/* High-Contrast Medallion Seal */}
           <div className="relative flex-shrink-0 group">
-            <div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-tr from-amber-400 via-amber-200 to-amber-500 shadow-lg shadow-amber-950/30">
-              <div className="w-full h-full rounded-full bg-[#f8fafc] flex items-center justify-center overflow-hidden relative">
-                <svg
-                  className="w-10 h-10"
-                  viewBox="0 0 100 100"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  {/* Background Golden Halo Arc */}
-                  <circle
-                    cx="50"
-                    cy="46"
-                    r="38"
-                    stroke="#d4af37"
-                    strokeWidth="2.5"
-                    strokeDasharray="160 50"
-                    strokeLinecap="round"
-                  />
-
-                  {/* Lady Justice Silhouette */}
-                  {/* Head & Blindfold */}
+            <div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-tr from-amber-400 via-amber-200 to-amber-500 shadow-md shadow-amber-950/20">
+              <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden relative">
+                <svg className="w-10 h-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="50" cy="46" r="38" stroke="#d4af37" strokeWidth="2.5" strokeDasharray="160 50" strokeLinecap="round" />
                   <circle cx="48" cy="24" r="7" fill="#0f172a" />
                   <rect x="43" y="22" width="11" height="3" rx="1.5" fill="#d4af37" />
-
-                  {/* Gown & Body */}
-                  <path
-                    d="M42 33 C42 33 46 31 52 31 C56 31 58 34 58 37 L61 68 H38 L42 33 Z"
-                    fill="#0f172a"
-                  />
-
-                  {/* Legal Codebook (Left Arm) */}
+                  <path d="M42 33 C42 33 46 31 52 31 C56 31 58 34 58 37 L61 68 H38 L42 33 Z" fill="#0f172a" />
                   <path d="M42 34 L34 45 L37 60 L43 56 Z" fill="#0f172a" />
-                  <rect
-                    x="32"
-                    y="48"
-                    width="8"
-                    height="13"
-                    rx="1"
-                    fill="#0f172a"
-                    stroke="#d4af37"
-                    strokeWidth="1.2"
-                  />
+                  <rect x="32" y="48" width="8" height="13" rx="1" fill="#0f172a" stroke="#d4af37" strokeWidth="1.2" />
                   <line x1="34" y1="48" x2="34" y2="61" stroke="#ffffff" strokeWidth="1" />
-
-                  {/* Raised Arm Holding Scales of Justice */}
-                  <path
-                    d="M56 35 L66 22 L64 16 C64 16 66 14 68 14 C70 14 71 16 71 17 L69 22 L60 38 Z"
-                    fill="#0f172a"
-                  />
-
-                  {/* Scales of Justice Beam & Pans */}
+                  <path d="M56 35 L66 22 L64 16 C64 16 66 14 68 14 C70 14 71 16 71 17 L69 22 L60 38 Z" fill="#0f172a" />
                   <line x1="56" y1="26" x2="84" y2="26" stroke="#0f172a" strokeWidth="2.5" strokeLinecap="round" />
                   <circle cx="70" cy="26" r="2" fill="#d4af37" />
-
-                  {/* Left Pan */}
                   <line x1="60" y1="26" x2="56" y2="38" stroke="#d4af37" strokeWidth="1" />
                   <line x1="60" y1="26" x2="64" y2="38" stroke="#d4af37" strokeWidth="1" />
                   <path d="M54 38 C54 42 66 42 66 38 Z" fill="#0f172a" stroke="#d4af37" strokeWidth="0.8" />
-
-                  {/* Right Pan */}
                   <line x1="80" y1="26" x2="76" y2="38" stroke="#d4af37" strokeWidth="1" />
                   <line x1="80" y1="26" x2="84" y2="38" stroke="#d4af37" strokeWidth="1" />
                   <path d="M74 38 C74 42 86 42 86 38 Z" fill="#0f172a" stroke="#d4af37" strokeWidth="0.8" />
-
-                  {/* Pedestal Arc Divider */}
                   <path d="M22 71 Q 50 67 78 71" stroke="#0f172a" strokeWidth="2" strokeLinecap="round" />
-
-                  {/* "NV" Monogram */}
-                  {/* N (Deep Navy) */}
-                  <text
-                    x="36"
-                    y="87"
-                    fontFamily="serif"
-                    fontSize="18"
-                    fontWeight="bold"
-                    fill="#0f172a"
-                    letterSpacing="-1"
-                  >
-                    N
-                  </text>
-                  {/* V (Judicial Gold) */}
-                  <text
-                    x="51"
-                    y="87"
-                    fontFamily="serif"
-                    fontSize="18"
-                    fontWeight="bold"
-                    fill="#b48222"
-                  >
-                    V
-                  </text>
-                  {/* Subtle Wing Lines */}
+                  <text x="36" y="87" fontFamily="serif" fontSize="18" fontWeight="bold" fill="#0f172a" letterSpacing="-1">N</text>
+                  <text x="51" y="87" fontFamily="serif" fontSize="18" fontWeight="bold" fill="#b48222">V</text>
                   <line x1="20" y1="82" x2="30" y2="82" stroke="#0f172a" strokeWidth="1" />
                   <line x1="68" y1="82" x2="78" y2="82" stroke="#0f172a" strokeWidth="1" />
                 </svg>
               </div>
             </div>
-            {/* Active Ledger Status Pill */}
-            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-slate-950 rounded-full"></span>
+            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-slate-950 rounded-full"></span>
           </div>
 
-          {/* Typography Group */}
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold tracking-tight text-white flex items-center">
-                Nyaya<span className="text-emerald-400">Vault</span>
+              <h1 className={`text-xl font-bold tracking-tight flex items-center ${t.titlePrimary}`}>
+                Nyaya<span className="text-emerald-500">Vault</span>
               </h1>
               <span className="text-[11px] bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 px-2.5 py-0.5 rounded-full font-mono font-semibold">
                 BSA Sec 63 Compliant
               </span>
             </div>
-            <p className="text-[11.5px] text-slate-400 leading-tight mt-0.5">
+            <p className={`text-[11.5px] leading-tight mt-0.5 ${t.textMuted}`}>
               Zero-Trust Evidence Ingestion, Bilingual PII Scrubbing &amp; Merkle Custody Ledger
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-xl">
-            <UserCheck className="w-4 h-4 text-emerald-400" />
-            <span className="text-xs text-slate-400">Active Officer:</span>
+          <div className={`flex items-center gap-2 border px-3 py-1.5 rounded-xl transition ${t.pillNav}`}>
+            <UserCheck className="w-4 h-4 text-emerald-500" />
+            <span className={`text-xs ${t.textMuted}`}>Active Officer:</span>
             <select
               value={currentOfficer}
               onChange={(e) => setCurrentOfficer(e.target.value)}
-              className="bg-transparent text-xs font-bold text-emerald-300 focus:outline-none cursor-pointer"
+              className="bg-transparent text-xs font-bold text-emerald-600 dark:text-emerald-400 focus:outline-none cursor-pointer"
             >
               {officers.map((o) => (
-                <option key={o.officer_id} value={o.officer_id} className="bg-slate-900 text-slate-100">
+                <option key={o.officer_id} value={o.officer_id} className={isDark ? "bg-slate-900 text-slate-100" : "bg-white text-slate-800"}>
                   {o.name} ({o.role})
                 </option>
               ))}
@@ -1047,18 +964,18 @@ export default function App() {
 
           <button
             onClick={triggerBackup}
-            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-700 text-emerald-400 transition"
+            className={`flex items-center gap-2 border text-xs font-bold px-3 py-1.5 rounded-xl transition ${t.pillNav} hover:border-emerald-500`}
           >
-            <HardDriveDownload className="w-4 h-4" /> Vault Backup
+            <HardDriveDownload className="w-4 h-4 text-emerald-500" /> Vault Backup
           </button>
-          {/* Light / Dark Mode Toggle Button */}
+
           <button
             type="button"
             onClick={toggleTheme}
             className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-xl border transition ${
               isDark
                 ? "bg-slate-800 hover:bg-slate-700 border-slate-700 text-amber-300"
-                : "bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700"
+                : "bg-white hover:bg-slate-100 border-slate-300 text-slate-700 shadow-sm"
             }`}
             title={`Switch to ${isDark ? "Light" : "Dark"} Mode`}
           >
@@ -1080,16 +997,16 @@ export default function App() {
       {/* Navigation Sub-Header */}
       <div className={`border-b px-8 py-2.5 flex justify-between items-center transition-colors duration-200 ${t.subnav}`}>
         <div className={`flex border p-1 rounded-xl transition-colors duration-200 ${t.innerBox}`}>
-          <button onClick={() => setTab("command")} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${tab === "command" ? "bg-emerald-600 text-white shadow-md" : "text-slate-400 hover:text-white"}`}>
+          <button onClick={() => setTab("command")} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${tab === "command" ? "bg-emerald-600 text-white shadow-md" : isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-900"}`}>
             <Activity className="w-3.5 h-3.5" /> 1. COMMAND DASHBOARD
           </button>
-          <button onClick={() => setTab("ingest")} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${tab === "ingest" ? "bg-emerald-600 text-white shadow-md" : "text-slate-400 hover:text-white"}`}>
+          <button onClick={() => setTab("ingest")} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${tab === "ingest" ? "bg-emerald-600 text-white shadow-md" : isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-900"}`}>
             <Camera className="w-3.5 h-3.5" /> 2. INGESTION & OCR
           </button>
-          <button onClick={() => setTab("custody")} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${tab === "custody" ? "bg-emerald-600 text-white shadow-md" : "text-slate-400 hover:text-white"}`}>
+          <button onClick={() => setTab("custody")} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${tab === "custody" ? "bg-emerald-600 text-white shadow-md" : isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-900"}`}>
             <History className="w-3.5 h-3.5" /> 3. LEDGER & CUSTODY
           </button>
-          <button onClick={() => setTab("court")} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${tab === "court" ? "bg-emerald-600 text-white shadow-md" : "text-slate-400 hover:text-white"}`}>
+          <button onClick={() => setTab("court")} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${tab === "court" ? "bg-emerald-600 text-white shadow-md" : isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-900"}`}>
             <SplitSquareVertical className="w-3.5 h-3.5" /> 4. COURT VERIFIER
           </button>
         </div>
@@ -1100,46 +1017,46 @@ export default function App() {
         {tab === "command" && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              <div className={`p-5 rounded-2xl shadow-xl relative overflow-hidden border transition-colors duration-200 ${t.card}`}>
+              <div className={`p-5 rounded-2xl relative overflow-hidden border transition-colors duration-200 ${t.card}`}>
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Encrypted Records</p>
-                <h3 className="text-3xl font-extrabold text-emerald-400 mt-2">{metrics.total_documents}</h3>
-                <p className="text-[11px] text-slate-500 mt-1 font-mono">AES-256-GCM Envelope Sealed</p>
+                <p className={`text-xs font-bold uppercase tracking-wider ${t.textMuted}`}>Total Encrypted Records</p>
+                <h3 className="text-3xl font-extrabold text-emerald-500 mt-2">{metrics.total_documents}</h3>
+                <p className={`text-[11px] mt-1 font-mono ${t.textMuted}`}>AES-256-GCM Envelope Sealed</p>
               </div>
 
-              <div className={`p-5 rounded-2xl shadow-xl relative overflow-hidden border transition-colors duration-200 ${t.card}`}>
+              <div className={`p-5 rounded-2xl relative overflow-hidden border transition-colors duration-200 ${t.card}`}>
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 to-blue-500" />
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Active Police Cases</p>
-                <h3 className="text-3xl font-extrabold text-cyan-400 mt-2">{metrics.active_cases}</h3>
-                <p className="text-[11px] text-slate-500 mt-1 font-mono">Under Lawful Chain Custody</p>
+                <p className={`text-xs font-bold uppercase tracking-wider ${t.textMuted}`}>Active Police Cases</p>
+                <h3 className="text-3xl font-extrabold text-cyan-500 mt-2">{metrics.active_cases}</h3>
+                <p className={`text-[11px] mt-1 font-mono ${t.textMuted}`}>Under Lawful Chain Custody</p>
               </div>
 
-              <div className={`p-5 rounded-2xl shadow-xl relative overflow-hidden border transition-colors duration-200 ${t.card}`}>
+              <div className={`p-5 rounded-2xl relative overflow-hidden border transition-colors duration-200 ${t.card}`}>
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 to-red-600" />
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Integrity Breaches Flagged</p>
-                <h3 className="text-3xl font-extrabold text-rose-400 mt-2">{metrics.security_alerts}</h3>
-                <p className="text-[11px] text-slate-500 mt-1 font-mono">Real-Time Hash Tamper Events</p>
+                <p className={`text-xs font-bold uppercase tracking-wider ${t.textMuted}`}>Integrity Breaches Flagged</p>
+                <h3 className="text-3xl font-extrabold text-rose-500 mt-2">{metrics.security_alerts}</h3>
+                <p className={`text-[11px] mt-1 font-mono ${t.textMuted}`}>Real-Time Hash Tamper Events</p>
               </div>
             </div>
 
             {/* Smart Search Bar & Records Grid */}
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4 shadow-xl">
+            <div className={`p-5 rounded-2xl space-y-4 border transition-colors duration-200 ${t.card}`}>
               <div className="flex flex-wrap gap-3 items-center">
                 <div className="relative flex-1 min-w-[240px]">
-                  <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-500" />
+                  <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
                   <input
                     type="text"
                     placeholder="Search Case No, UUID, or redacted narrative..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") fetchLedger(); }}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                    className={`w-full rounded-xl pl-10 pr-4 py-2 text-xs outline-none transition ${t.input}`}
                   />
                 </div>
                 <select
                   value={docTypeFilter}
                   onChange={(e) => setDocTypeFilter(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-300 focus:outline-none focus:border-emerald-500 cursor-pointer"
+                  className={`rounded-xl px-4 py-2 text-xs outline-none cursor-pointer transition ${t.input}`}
                 >
                   <option value="All">All Document Classifications</option>
                   <option value="First Information Report (FIR)">First Information Report (FIR)</option>
@@ -1151,50 +1068,50 @@ export default function App() {
                 <button 
                   type="button"
                   onClick={fetchLedger} 
-                  className="bg-emerald-600 hover:bg-emerald-500 text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-2 text-white"
+                  className="bg-emerald-600 hover:bg-emerald-500 text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-2 text-white shadow-sm"
                 >
                   <RefreshCw className="w-3.5 h-3.5" /> Filter
                 </button>
               </div>
-  
+
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="text-slate-400 border-b border-slate-800 text-[11px] uppercase tracking-wider font-semibold select-none">
+                  <thead className={`border-b text-[11px] uppercase tracking-wider font-semibold select-none ${t.textMuted} ${t.border}`}>
                     <tr>
-                      <th onClick={() => handleSort("doc_id")} className="pb-3 px-2 cursor-pointer hover:text-emerald-400">
+                      <th onClick={() => handleSort("doc_id")} className="pb-3 px-2 cursor-pointer hover:text-emerald-500">
                         Document ID {sortField === "doc_id" ? (sortAsc ? "▲" : "▼") : ""}
                       </th>
-                      <th onClick={() => handleSort("case_number")} className="pb-3 px-2 cursor-pointer hover:text-emerald-400">
+                      <th onClick={() => handleSort("case_number")} className="pb-3 px-2 cursor-pointer hover:text-emerald-500">
                         Case Number {sortField === "case_number" ? (sortAsc ? "▲" : "▼") : ""}
                       </th>
-                      <th onClick={() => handleSort("doc_type")} className="pb-3 px-2 cursor-pointer hover:text-emerald-400">
+                      <th onClick={() => handleSort("doc_type")} className="pb-3 px-2 cursor-pointer hover:text-emerald-500">
                         Classification {sortField === "doc_type" ? (sortAsc ? "▲" : "▼") : ""}
                       </th>
-                      <th onClick={() => handleSort("officer_id")} className="pb-3 px-2 cursor-pointer hover:text-emerald-400">
+                      <th onClick={() => handleSort("officer_id")} className="pb-3 px-2 cursor-pointer hover:text-emerald-500">
                         Certifying Officer {sortField === "officer_id" ? (sortAsc ? "▲" : "▼") : ""}
                       </th>
                       <th className="pb-3 px-2">Genesis SHA-256 Digest</th>
                       <th className="pb-3 px-2 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-850">
+                  <tbody className={`divide-y ${isDark ? "divide-slate-800/80" : "divide-slate-200"}`}>
                     {sortedLedgerHistory.map((d) => (
-                      <tr key={d.doc_id} className="hover:bg-slate-800/40 transition">
-                        <td className="py-3 px-2 font-mono text-emerald-400 font-medium">{d.doc_id}</td>
-                        <td className="py-3 px-2 font-semibold text-slate-200">{d.case_number}</td>
+                      <tr key={d.doc_id} className={`transition ${t.tableRowHover}`}>
+                        <td className="py-3 px-2 font-mono text-emerald-500 font-medium">{d.doc_id}</td>
+                        <td className={`py-3 px-2 font-semibold ${t.titlePrimary}`}>{d.case_number}</td>
                         <td className="py-3 px-2">
-                          <span className="bg-slate-800 border border-slate-700 px-2 py-0.5 rounded text-[11px] text-slate-300">
+                          <span className={`px-2 py-0.5 rounded text-[11px] border ${t.cardInner}`}>
                             {d.doc_type}
                           </span>
                         </td>
-                        <td className="py-3 px-2 text-slate-400">{d.officer_id} ({d.actor_role})</td>
-                        <td className="py-3 px-2 font-mono text-slate-500">{d.sha256_hash.substring(0, 16)}...</td>
+                        <td className={`py-3 px-2 ${t.textMuted}`}>{d.officer_id} ({d.actor_role})</td>
+                        <td className="py-3 px-2 font-mono text-slate-400">{d.sha256_hash.substring(0, 16)}...</td>
                         <td className="py-3 px-2 text-right space-x-3">
-                          <button onClick={() => { setSelectedDocId(d.doc_id); loadTimeline(d.doc_id); setTab("custody"); }} className="text-cyan-400 hover:underline font-bold">
+                          <button onClick={() => { setSelectedDocId(d.doc_id); loadTimeline(d.doc_id); setTab("custody"); }} className="text-cyan-500 hover:underline font-bold">
                             Timeline
                           </button>
-                          <span className="text-slate-700">|</span>
-                          <button onClick={() => openBsaCertificate(d.doc_id)} className="text-emerald-400 hover:underline font-bold">
+                          <span className={t.textMuted}>|</span>
+                          <button onClick={() => openBsaCertificate(d.doc_id)} className="text-emerald-500 hover:underline font-bold">
                             Sec 63 Cert
                           </button>
                         </td>
@@ -1202,7 +1119,7 @@ export default function App() {
                     ))}
                     {sortedLedgerHistory.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="py-8 text-center text-slate-500">
+                        <td colSpan={6} className={`py-8 text-center ${t.textMuted}`}>
                           No evidence records in ledger matching criteria.
                         </td>
                       </tr>
@@ -1220,14 +1137,14 @@ export default function App() {
                 </h3>
                 <div className="space-y-2">
                   {recentAlerts.map((a) => (
-                    <div key={a.alert_id} className="p-3 bg-slate-900 border border-rose-500/20 rounded-xl flex justify-between items-center text-xs">
+                    <div key={a.alert_id} className={`p-3 border border-rose-500/20 rounded-xl flex justify-between items-center text-xs ${t.cardInner}`}>
                       <div>
-                        <span className="font-mono text-rose-400 font-bold">{a.alert_type}</span> on Doc <span className="font-mono text-slate-200">{a.doc_id}</span>: {a.details}
-                        <p className="text-[10px] text-slate-500 mt-0.5 font-mono">
+                        <span className="font-mono text-rose-500 font-bold">{a.alert_type}</span> on Doc <span className={`font-mono ${t.titlePrimary}`}>{a.doc_id}</span>: {a.details}
+                        <p className={`text-[10px] mt-0.5 font-mono ${t.textMuted}`}>
                           Triggered by: {a.triggered_by} • {formatIST(a.timestamp)}
                         </p>
                       </div>
-                      <span className="text-rose-400 font-mono text-[10px] bg-rose-500/15 border border-rose-500/30 px-2 py-0.5 rounded font-bold">
+                      <span className="text-rose-500 font-mono text-[10px] bg-rose-500/15 border border-rose-500/30 px-2 py-0.5 rounded font-bold">
                         {a.severity}
                       </span>
                     </div>
@@ -1241,24 +1158,24 @@ export default function App() {
         {/* Tab 2: Ingestion & OCR */}
         {tab === "ingest" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className={`p-6 rounded-2xl shadow-xl flex flex-col space-y-4 border transition-colors duration-200 ${t.card}`}>
+            <div className={`p-6 rounded-2xl flex flex-col space-y-4 border transition-colors duration-200 ${t.card}`}>
               <div className="flex justify-between items-center">
-                <h2 className="text-sm font-bold flex items-center space-x-2 text-slate-200 uppercase tracking-wider">
-                  <Lock className="h-4 w-4 text-emerald-400" />
+                <h2 className={`text-sm font-bold flex items-center space-x-2 uppercase tracking-wider ${t.titlePrimary}`}>
+                  <Lock className="h-4 w-4 text-emerald-500" />
                   <span>Evidence Ingestion Terminal</span>
                 </h2>
-                <div className="flex bg-slate-950 border border-slate-800 p-1 rounded-lg text-xs">
+                <div className={`flex border p-1 rounded-lg text-xs transition-colors duration-200 ${t.cardInner}`}>
                   <button
                     type="button"
                     onClick={() => setInputMode("file")}
-                    className={`px-3 py-1 rounded-md font-bold transition ${inputMode === "file" ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-white"}`}
+                    className={`px-3 py-1 rounded-md font-bold transition ${inputMode === "file" ? "bg-emerald-600 text-white" : t.textMuted}`}
                   >
                     Photo / File Upload
                   </button>
                   <button
                     type="button"
                     onClick={() => setInputMode("text")}
-                    className={`px-3 py-1 rounded-md font-bold transition ${inputMode === "text" ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-white"}`}
+                    className={`px-3 py-1 rounded-md font-bold transition ${inputMode === "text" ? "bg-emerald-600 text-white" : t.textMuted}`}
                   >
                     Direct Text Entry
                   </button>
@@ -1268,38 +1185,38 @@ export default function App() {
               <form onSubmit={submitIngestion} className="space-y-4 text-xs flex-1 flex flex-col">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-slate-400 font-mono">CASE / FIR NUMBER</label>
-                    <input type="text" value={caseNo} onChange={(e) => setCaseNo(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 mt-1 font-mono text-slate-200 outline-none focus:border-emerald-500" />
+                    <label className={`font-mono block mb-1 ${t.textMuted}`}>CASE / FIR NUMBER</label>
+                    <input type="text" value={caseNo} onChange={(e) => setCaseNo(e.target.value)} className={`w-full rounded-lg p-2 font-mono text-xs outline-none transition ${t.input}`} />
                   </div>
                   <div>
-                    <label className="text-slate-400 font-mono">CLASSIFICATION</label>
-                    <input type="text" value={docType} onChange={(e) => setDocType(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 mt-1 text-slate-200 outline-none" />
+                    <label className={`font-mono block mb-1 ${t.textMuted}`}>CLASSIFICATION</label>
+                    <input type="text" value={docType} onChange={(e) => setDocType(e.target.value)} className={`w-full rounded-lg p-2 text-xs outline-none transition ${t.input}`} />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-slate-400 font-mono">INVESTIGATING OFFICER</label>
-                    <input type="text" value={officerId} onChange={(e) => setOfficerId(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 mt-1 font-mono text-slate-200 outline-none" />
+                    <label className={`font-mono block mb-1 ${t.textMuted}`}>INVESTIGATING OFFICER</label>
+                    <input type="text" value={officerId} onChange={(e) => setOfficerId(e.target.value)} className={`w-full rounded-lg p-2 font-mono text-xs outline-none transition ${t.input}`} />
                   </div>
                   <div>
-                    <label className="text-slate-400 font-mono">DESIGNATION</label>
-                    <input type="text" value={role} onChange={(e) => setRole(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 mt-1 text-slate-200 outline-none" />
+                    <label className={`font-mono block mb-1 ${t.textMuted}`}>DESIGNATION</label>
+                    <input type="text" value={role} onChange={(e) => setRole(e.target.value)} className={`w-full rounded-lg p-2 text-xs outline-none transition ${t.input}`} />
                   </div>
                 </div>
 
                 {inputMode === "file" ? (
-                  <div className="space-y-3 flex-1 flex flex-col justify-center border-2 border-dashed border-slate-800 rounded-xl p-4 bg-slate-950/60">
+                  <div className={`space-y-3 flex-1 flex flex-col justify-center border-2 border-dashed rounded-xl p-4 transition-colors duration-200 ${t.border} ${t.cardInner}`}>
                     <div className="flex gap-2 justify-center">
                       <button
                         type="button"
                         onClick={openLiveCamera}
-                        className="px-4 py-2.5 bg-emerald-950 border border-emerald-500/40 hover:bg-emerald-900/60 text-emerald-300 font-bold rounded-xl flex items-center gap-2 transition shadow-lg"
+                        className="px-4 py-2.5 bg-emerald-600/15 border border-emerald-500/40 hover:bg-emerald-600/25 text-emerald-600 dark:text-emerald-300 font-bold rounded-xl flex items-center gap-2 transition shadow-sm"
                       >
                         <Camera className="h-4 w-4" /> Live Camera Scanner & Perspective Warp
                       </button>
                     </div>
-                    <div className="text-center text-slate-500 text-[11px]">— OR CHOOSE EVIDENCE FILE FROM DISK —</div>
+                    <div className={`text-center text-[11px] ${t.textMuted}`}>— OR CHOOSE EVIDENCE FILE FROM DISK —</div>
                     <input
                       type="file"
                       onChange={(e) => {
@@ -1314,10 +1231,10 @@ export default function App() {
                           reader.readAsDataURL(file);
                         }
                       }}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:bg-emerald-600 file:text-white text-xs cursor-pointer"
+                      className={`w-full border rounded-lg p-2 file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:bg-emerald-600 file:text-white text-xs cursor-pointer ${t.input}`}
                     />
                     {uploadedFile && (
-                      <p className="text-emerald-400 text-center text-xs font-mono">
+                      <p className="text-emerald-500 text-center text-xs font-mono">
                         Selected: {uploadedFile.name} ({Math.round(uploadedFile.size / 1024)} KB)
                       </p>
                     )}
@@ -1325,11 +1242,11 @@ export default function App() {
                 ) : (
                   <div className="flex-1 flex flex-col">
                     <div className="flex justify-between items-center mb-1">
-                      <label className="text-slate-400 font-mono">BILINGUAL FIR TEXT</label>
+                      <label className={`font-mono ${t.textMuted}`}>BILINGUAL FIR TEXT</label>
                       <button
                         type="button"
-                        onClick={() => setRawText(SAMPLE_BILINGUAL_FIR)}
-                        className="text-emerald-400 text-[11px] font-mono hover:underline flex items-center gap-1"
+                        onClick={() => handleTextChange(SAMPLE_BILINGUAL_FIR)}
+                        className="text-emerald-500 text-[11px] font-mono hover:underline flex items-center gap-1"
                       >
                         <RefreshCw className="h-3 w-3" /> Load Sample FIR
                       </button>
@@ -1337,13 +1254,13 @@ export default function App() {
                     <textarea
                       rows={10}
                       value={rawText}
-                      onChange={(e) => setRawText(e.target.value)}
-                      className="w-full flex-1 bg-slate-950 border border-slate-800 rounded-xl p-3 font-mono text-xs text-slate-200 outline-none focus:border-emerald-500 leading-relaxed"
+                      onChange={(e) => handleTextChange(e.target.value)}
+                      className={`w-full flex-1 rounded-xl p-3 font-mono text-xs outline-none leading-relaxed transition ${t.input}`}
                     />
                   </div>
                 )}
 
-                <button type="submit" className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 font-bold rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                <button type="submit" className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2">
                   <Lock className="h-4 w-4" /> Run OCR, Strip PII (Sec 72 BNS) & Commit Encrypted Block
                 </button>
               </form>
@@ -1353,30 +1270,30 @@ export default function App() {
             <div className="space-y-4">
               {ingestOutput ? (
                 <>
-                  <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-3 font-mono text-xs shadow-xl">
-                    <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
+                  <div className={`p-5 rounded-2xl space-y-3 font-mono text-xs border transition-colors duration-200 ${t.card}`}>
+                    <h3 className="text-sm font-bold text-emerald-500 flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4" /> Cryptographic Telemetry & Physical Disk Link
                     </h3>
-                    <div className="p-2.5 bg-slate-950 rounded-lg border border-slate-800">
-                      <span className="text-slate-500 block text-[10px]">DISK STORAGE (AES-256-GCM CIPHERTEXT):</span>
-                      <span className="text-emerald-300 break-all font-mono">{ingestOutput.disk_storage_path}</span>
+                    <div className={`p-2.5 rounded-lg border ${t.cardInner}`}>
+                      <span className={`block text-[10px] ${t.textMuted}`}>DISK STORAGE (AES-256-GCM CIPHERTEXT):</span>
+                      <span className="text-emerald-500 break-all font-mono">{ingestOutput.disk_storage_path}</span>
                     </div>
-                    <div className="p-2.5 bg-slate-950 rounded-lg border border-slate-800">
-                      <span className="text-slate-500 block text-[10px]">EVIDENTIARY SHA-256 HASH DIGEST:</span>
-                      <span className="text-cyan-400 break-all font-mono">{ingestOutput.sha256_hash}</span>
+                    <div className={`p-2.5 rounded-lg border ${t.cardInner}`}>
+                      <span className={`block text-[10px] ${t.textMuted}`}>EVIDENTIARY SHA-256 HASH DIGEST:</span>
+                      <span className="text-cyan-500 break-all font-mono">{ingestOutput.sha256_hash}</span>
                     </div>
-                    <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 flex justify-between items-center gap-4">
+                    <div className={`p-3 rounded-lg border flex justify-between items-center gap-4 ${t.cardInner}`}>
                       <div className="space-y-1">
-                        <span className="text-purple-400 block text-xs font-bold uppercase flex items-center gap-1.5">
+                        <span className="text-purple-500 block text-xs font-bold uppercase flex items-center gap-1.5">
                           <QrCode className="w-4 h-4" /> Malkhana Physical QR Seal
                         </span>
-                        <p className="text-slate-400 text-[11px] font-sans">
+                        <p className={`text-[11px] font-sans ${t.textMuted}`}>
                           Print and affix to physical evidence bag to bind physical chain of custody.
                         </p>
                         <button
                           type="button"
                           onClick={() => downloadMalkhanaQrTag(ingestOutput.malkhana_qr, ingestOutput.doc_id, ingestOutput.case_number)}
-                          className="mt-1.5 px-3 py-1.5 bg-purple-950 hover:bg-purple-900 border border-purple-500/40 text-purple-300 rounded-lg text-xs font-bold font-sans flex items-center gap-1.5 transition"
+                          className="mt-1.5 px-3 py-1.5 bg-purple-600/15 hover:bg-purple-600/25 border border-purple-500/40 text-purple-600 dark:text-purple-300 rounded-lg text-xs font-bold font-sans flex items-center gap-1.5 transition"
                         >
                           <Download className="w-3.5 h-3.5" /> Download QR Tag (.png)
                         </button>
@@ -1385,20 +1302,22 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-2 shadow-xl">
-                    <span className="text-amber-400 font-bold text-xs flex items-center gap-1.5 uppercase font-mono">
+                  <div className={`p-5 rounded-2xl space-y-2 border transition-colors duration-200 ${t.card}`}>
+                    <span className="text-amber-500 font-bold text-xs flex items-center gap-1.5 uppercase font-mono">
                       <FileText className="h-4 w-4" /> Extracted & Redacted PII (Section 72 BNS Safe)
                     </span>
-                    <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl font-mono text-xs text-slate-300 max-h-64 overflow-y-auto whitespace-pre-wrap leading-relaxed">
+                    <div className={`p-4 rounded-xl font-mono text-xs max-h-64 overflow-y-auto whitespace-pre-wrap leading-relaxed border ${t.cardInner}`}>
                       {ingestOutput.redacted_preview}
                     </div>
                   </div>
                 </>
               ) : (
-                <div className="h-full bg-slate-900/50 border border-slate-800/80 rounded-2xl flex flex-col items-center justify-center p-8 text-center text-slate-500 space-y-3">
-                  <Database className="h-12 w-12 text-slate-700" />
-                  <p className="text-sm font-semibold text-slate-400">No Document Ingested Yet</p>
-                  <p className="text-xs max-w-sm">Capture a document or submit text to execute local OCR, strip PII identities, and commit an encrypted block to disk.</p>
+                <div className={`h-full border rounded-2xl flex flex-col items-center justify-center p-8 text-center space-y-3 transition-colors duration-200 ${t.cardInner}`}>
+                  <Database className={`h-12 w-12 ${isDark ? "text-slate-700" : "text-slate-300"}`} />
+                  <p className={`text-sm font-semibold ${t.titlePrimary}`}>No Document Ingested Yet</p>
+                  <p className={`text-xs max-w-sm ${t.textMuted}`}>
+                    Capture a document or submit text to execute local OCR, strip PII identities, and commit an encrypted block to disk.
+                  </p>
                 </div>
               )}
             </div>
@@ -1410,12 +1329,12 @@ export default function App() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Ledger Blocks Sidebar */}
-              <div className={`lg:col-span-1 rounded-2xl p-4 flex flex-col max-h-[80vh] shadow-xl border transition-colors duration-200 ${t.card}`}>
+              <div className={`lg:col-span-1 rounded-2xl p-4 flex flex-col max-h-[80vh] border transition-colors duration-200 ${t.card}`}>
                 <div className="flex justify-between items-center mb-3">
-                  <h2 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                    <History className="h-4 w-4 text-emerald-400" /> Immutable Chain ({ledgerHistory.length} Blocks)
+                  <h2 className={`text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 ${t.titlePrimary}`}>
+                    <History className="h-4 w-4 text-emerald-500" /> Immutable Chain ({ledgerHistory.length} Blocks)
                   </h2>
-                  <button onClick={fetchLedger} className="text-slate-400 hover:text-white"><RefreshCw className="h-3.5 w-3.5" /></button>
+                  <button onClick={fetchLedger} className={`hover:text-emerald-500 ${t.textMuted}`}><RefreshCw className="h-3.5 w-3.5" /></button>
                 </div>
                 <div className="flex-1 overflow-y-auto space-y-2 pr-1">
                   {ledgerHistory.map((item) => (
@@ -1429,17 +1348,19 @@ export default function App() {
                       className={`p-3 rounded-xl border text-xs cursor-pointer transition ${
                         (selectedLedgerItem?.doc_id === item.doc_id || selectedDocId === item.doc_id)
                           ? "bg-emerald-950/40 border-emerald-500 text-white"
-                          : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                          : isDark
+                            ? "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                            : "bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300"
                       }`}
                     >
-                      <div className="flex justify-between font-mono font-bold text-emerald-400">
+                      <div className="flex justify-between font-mono font-bold text-emerald-500">
                         <span>#{item.id} {item.case_number}</span>
-                        <span className="text-[10px] text-slate-400">
+                        <span className={`text-[10px] ${t.textMuted}`}>
                           {formatIST(item.timestamp)}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-300 mt-1">{item.doc_type}</p>
-                      <p className="text-[10px] font-mono text-slate-500 truncate mt-1">Hash: {item.sha256_hash}</p>
+                      <p className={`text-[11px] mt-1 ${t.titlePrimary}`}>{item.doc_type}</p>
+                      <p className={`text-[10px] font-mono truncate mt-1 ${t.textMuted}`}>Hash: {item.sha256_hash}</p>
                     </div>
                   ))}
                 </div>
@@ -1447,54 +1368,54 @@ export default function App() {
 
               {/* Custody Movement & Chained Timeline */}
               <div className="lg:col-span-2 space-y-5">
-                <div className={`p-5 rounded-2xl space-y-4 shadow-xl border transition-colors duration-200 ${t.card}`}>
-                  <h2 className="font-bold text-xs uppercase tracking-wider text-slate-100 flex items-center gap-2">
-                    <ArrowRight className="w-4 h-4 text-emerald-400" /> Log Physical Evidence Movement
+                <div className={`p-5 rounded-2xl space-y-4 border transition-colors duration-200 ${t.card}`}>
+                  <h2 className={`font-bold text-xs uppercase tracking-wider flex items-center gap-2 ${t.titlePrimary}`}>
+                    <ArrowRight className="w-4 h-4 text-emerald-500" /> Log Physical Evidence Movement
                   </h2>
                   <form onSubmit={handleHandover} className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Target Document ID</label>
+                      <label className={`block text-[10px] font-bold uppercase tracking-wider mb-1 ${t.textMuted}`}>Target Document ID</label>
                       <input
                         type="text"
                         placeholder="e.g. DOC-XXXX..."
                         value={selectedDocId}
                         onChange={(e) => setSelectedDocId(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-slate-100 font-mono"
+                        className={`w-full rounded-xl p-2 text-xs font-mono outline-none transition ${t.input}`}
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Transferring Entity (From)</label>
+                      <label className={`block text-[10px] font-bold uppercase tracking-wider mb-1 ${t.textMuted}`}>Transferring Entity (From)</label>
                       <input
                         type="text"
                         value={handoverFrom}
                         onChange={(e) => setHandoverFrom(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-slate-100"
+                        className={`w-full rounded-xl p-2 text-xs outline-none transition ${t.input}`}
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Receiving Entity (To)</label>
+                      <label className={`block text-[10px] font-bold uppercase tracking-wider mb-1 ${t.textMuted}`}>Receiving Entity (To)</label>
                       <input
                         type="text"
                         value={handoverTo}
                         onChange={(e) => setHandoverTo(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-slate-100"
+                        className={`w-full rounded-xl p-2 text-xs outline-none transition ${t.input}`}
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Custodial Purpose</label>
+                      <label className={`block text-[10px] font-bold uppercase tracking-wider mb-1 ${t.textMuted}`}>Custodial Purpose</label>
                       <input
                         type="text"
                         value={handoverPurpose}
                         onChange={(e) => setHandoverPurpose(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-slate-100"
+                        className={`w-full rounded-xl p-2 text-xs outline-none transition ${t.input}`}
                       />
                     </div>
                     <div className="md:col-span-2">
                       <button
                         type="submit"
                         disabled={isHandingOver}
-                        className="w-full bg-emerald-600 hover:bg-emerald-500 font-bold text-xs py-2.5 rounded-xl transition text-white shadow-lg disabled:opacity-50"
+                        className="w-full bg-emerald-600 hover:bg-emerald-500 font-bold text-xs py-2.5 rounded-xl transition text-white shadow-md disabled:opacity-50"
                       >
                         {isHandingOver ? "Signing Movement..." : "Sign & Record Custody Handover"}
                       </button>
@@ -1503,17 +1424,17 @@ export default function App() {
                 </div>
 
                 {/* Chronological Timeline Feed */}
-                <div className={`p-5 rounded-2xl space-y-4 shadow-xl border transition-colors duration-200 ${t.card}`}>
+                <div className={`p-5 rounded-2xl space-y-4 border transition-colors duration-200 ${t.card}`}>
                   <div className="flex justify-between items-center">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-100 flex items-center gap-2">
-                      <Award className="w-4 h-4 text-emerald-400" /> Custody Trail: <span className="font-mono text-emerald-400 font-bold">{selectedDocId || "Select a Document"}</span>
+                    <h3 className={`text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${t.titlePrimary}`}>
+                      <Award className="w-4 h-4 text-emerald-500" /> Custody Trail: <span className="font-mono text-emerald-500 font-bold">{selectedDocId || "Select a Document"}</span>
                     </h3>
                     {selectedDocId && (
                       <div className="space-x-2">
-                        <button onClick={() => openBsaCertificate(selectedDocId)} className="text-xs font-bold text-emerald-400 hover:underline">
+                        <button onClick={() => openBsaCertificate(selectedDocId)} className="text-xs font-bold text-emerald-500 hover:underline">
                           View Sec 63 Cert
                         </button>
-                        <button onClick={() => { if (selectedLedgerItem) loadLedgerItemInVerifier(selectedLedgerItem); }} className="text-xs font-bold text-cyan-400 hover:underline">
+                        <button onClick={() => { if (selectedLedgerItem) loadLedgerItemInVerifier(selectedLedgerItem); }} className="text-xs font-bold text-cyan-500 hover:underline">
                           Load in Verifier
                         </button>
                       </div>
@@ -1522,25 +1443,25 @@ export default function App() {
 
                   <div className="space-y-3">
                     {timeline.map((evt) => (
-                      <div key={evt.event_id} className="p-3.5 bg-slate-950 border border-slate-800 rounded-xl flex items-start justify-between gap-4">
+                      <div key={evt.event_id} className={`p-3.5 rounded-xl border flex items-start justify-between gap-4 transition-colors duration-200 ${t.cardInner}`}>
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-xs text-emerald-400">{evt.from_entity}</span>
-                            <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
-                            <span className="font-bold text-xs text-cyan-400">{evt.to_entity}</span>
+                            <span className="font-bold text-xs text-emerald-500">{evt.from_entity}</span>
+                            <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                            <span className="font-bold text-xs text-cyan-500">{evt.to_entity}</span>
                           </div>
-                          <p className="text-xs text-slate-300">{evt.purpose}</p>
-                          <p className="text-[11px] text-slate-500 font-mono">
+                          <p className={`text-xs ${t.titlePrimary}`}>{evt.purpose}</p>
+                          <p className={`text-[11px] font-mono ${t.textMuted}`}>
                             Officer: {evt.authorized_by} • Verified Hash: {evt.verified_hash.substring(0, 16)}...
                           </p>
                         </div>
-                        <span className="text-[10px] bg-slate-800 border border-slate-700 text-slate-300 px-2.5 py-1 rounded font-mono shrink-0">
+                        <span className={`text-[10px] px-2.5 py-1 rounded font-mono shrink-0 border ${t.pillNav}`}>
                           {formatIST(evt.timestamp)}
                         </span>
                       </div>
                     ))}
                     {timeline.length === 0 && (
-                      <p className="text-slate-500 text-xs py-8 text-center">
+                      <p className={`text-xs py-8 text-center ${t.textMuted}`}>
                         Select a block on the left to inspect its custody lifecycle and handover milestones.
                       </p>
                     )}
@@ -1551,45 +1472,45 @@ export default function App() {
           </div>
         )}
 
-        {/* Tab 4: Courtroom Verifier with Dual Independent Channels */}
+        {/* Tab 4: Courtroom Verifier */}
         {tab === "court" && (
-          <div className="max-w-5xl mx-auto bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-xl space-y-6">
-            <div className="border-b border-slate-800 pb-4 flex justify-between items-center">
+          <div className={`max-w-5xl mx-auto p-8 rounded-2xl space-y-6 border transition-colors duration-200 ${t.card}`}>
+            <div className={`border-b pb-4 flex justify-between items-center ${t.border}`}>
               <div>
-                <h2 className="text-base font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <SplitSquareVertical className="h-5 w-5 text-emerald-400" />
+                <h2 className={`text-base font-bold uppercase tracking-wider flex items-center gap-2 ${t.titlePrimary}`}>
+                  <SplitSquareVertical className="h-5 w-5 text-emerald-500" />
                   Court Evidentiary Verification & Visual Comparison Terminal
                 </h2>
-                <p className="text-xs text-slate-400">Section 63 BSA Cryptographic Audit & Physical QR Decoder</p>
+                <p className={`text-xs ${t.textMuted}`}>Section 63 BSA Cryptographic Audit & Physical QR Decoder</p>
               </div>
               <button
                 type="button"
                 onClick={() => {
                   if (ledgerHistory.length > 0) loadLedgerItemInVerifier(ledgerHistory[0]);
                 }}
-                className="text-xs font-mono text-emerald-400 hover:underline flex items-center gap-1"
+                className="text-xs font-mono text-emerald-500 hover:underline flex items-center gap-1"
               >
                 <RefreshCw className="h-3 w-3" /> Load Latest Ledger Record
               </button>
             </div>
 
             {/* CHANNEL A: Physical QR Tag Verification */}
-            <div className="bg-purple-950/20 border border-purple-500/40 p-5 rounded-2xl space-y-3">
+            <div className="bg-purple-600/10 border border-purple-500/30 p-5 rounded-2xl space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-purple-500/20 rounded-xl text-purple-300">
+                  <div className="p-2.5 bg-purple-500/20 rounded-xl text-purple-600 dark:text-purple-300">
                     <QrCode className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-purple-300 uppercase tracking-wider font-mono">
+                    <h3 className="text-sm font-bold text-purple-600 dark:text-purple-300 uppercase tracking-wider font-mono">
                       Method 1: Physical Evidence QR Tag Verification
                     </h3>
-                    <p className="text-xs text-slate-400">
+                    <p className={`text-xs ${t.textMuted}`}>
                       Upload or scan the physical QR tag affixed to the Malkhana evidence bag to verify on-chain registration.
                     </p>
                   </div>
                 </div>
-                <label className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold cursor-pointer flex items-center gap-2 transition shadow-lg shrink-0">
+                <label className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold cursor-pointer flex items-center gap-2 transition shadow-md shrink-0">
                   <ScanLine className="w-4 h-4" /> Scan / Upload Physical QR
                   <input type="file" accept="image/*" onChange={handleQrUploadAndVerify} className="hidden" />
                 </label>
@@ -1598,42 +1519,42 @@ export default function App() {
 
             {/* Side-by-Side Visual Comparison Inspector */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-2 flex flex-col">
+              <div className={`p-4 rounded-xl space-y-2 flex flex-col border ${t.cardInner}`}>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold font-mono text-cyan-400 uppercase flex items-center gap-1.5">
+                  <span className="text-xs font-bold font-mono text-cyan-600 dark:text-cyan-400 uppercase flex items-center gap-1.5">
                     <Lock className="h-3.5 w-3.5" /> 1. Registered Genesis Sealed Artifact
                   </span>
-                  <span className="text-[10px] bg-cyan-950 border border-cyan-500/40 text-cyan-300 px-2 py-0.5 rounded font-mono">
+                  <span className="text-[10px] bg-cyan-600/15 border border-cyan-500/30 text-cyan-600 dark:text-cyan-300 px-2 py-0.5 rounded font-mono font-bold">
                     On-Chain Benchmark
                   </span>
                 </div>
-                <div className="flex-1 flex items-center justify-center bg-black/50 rounded-lg p-2 min-h-[200px] max-h-[240px] overflow-hidden border border-slate-900">
+                <div className={`flex-1 flex items-center justify-center rounded-lg p-2 min-h-[200px] max-h-[240px] overflow-hidden border ${isDark ? "bg-black/50 border-slate-900" : "bg-white border-slate-200"}`}>
                   {courtBenchmarkImageDataUrl ? (
                     <img src={courtBenchmarkImageDataUrl} alt="Original Genesis Artifact" className="max-h-52 object-contain rounded" />
                   ) : (
-                    <div className="text-center text-slate-600 text-xs font-mono">
+                    <div className={`text-center text-xs font-mono ${t.textMuted}`}>
                       No sealed photo artifact registered
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-2 flex flex-col">
+              <div className={`p-4 rounded-xl space-y-2 flex flex-col border ${t.cardInner}`}>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold font-mono text-amber-400 uppercase flex items-center gap-1.5">
+                  <span className="text-xs font-bold font-mono text-amber-600 dark:text-amber-400 uppercase flex items-center gap-1.5">
                     <Eye className="h-3.5 w-3.5" /> 2. Evidence Presented in Court
                   </span>
-                  <span className="text-[10px] bg-amber-950 border border-amber-500/40 text-amber-300 px-2 py-0.5 rounded font-mono">
+                  <span className="text-[10px] bg-amber-600/15 border border-amber-500/30 text-amber-600 dark:text-amber-300 px-2 py-0.5 rounded font-mono font-bold">
                     Under Inspection
                   </span>
                 </div>
-                <div className="flex-1 flex items-center justify-center bg-black/50 rounded-lg p-2 min-h-[200px] max-h-[240px] overflow-hidden border border-slate-900">
+                <div className={`flex-1 flex items-center justify-center rounded-lg p-2 min-h-[200px] max-h-[240px] overflow-hidden border ${isDark ? "bg-black/50 border-slate-900" : "bg-white border-slate-200"}`}>
                   {verifyUploadedImageDataUrl ? (
                     <img src={verifyUploadedImageDataUrl} alt="Uploaded File For Audit" className="max-h-52 object-contain rounded" />
                   ) : courtBenchmarkImageDataUrl && !verifyFile ? (
                     <img src={courtBenchmarkImageDataUrl} alt="Active Benchmark Artifact" className="max-h-52 object-contain rounded opacity-80" />
                   ) : (
-                    <div className="text-center text-slate-600 text-xs font-mono">
+                    <div className={`text-center text-xs font-mono ${t.textMuted}`}>
                       Upload physical file below to inspect
                     </div>
                   )}
@@ -1642,26 +1563,26 @@ export default function App() {
             </div>
 
             {/* CHANNEL B: Digital Evidence File & Narrative Audit */}
-            <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
-              <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider font-mono flex items-center gap-2">
-                <FileText className="w-4 h-4 text-emerald-400" />
+            <div className={`p-6 rounded-2xl space-y-4 border ${t.cardInner}`}>
+              <h3 className={`text-sm font-bold uppercase tracking-wider font-mono flex items-center gap-2 ${t.titlePrimary}`}>
+                <FileText className="w-4 h-4 text-emerald-500" />
                 Method 2: Digital Evidence File & Narrative Audit
               </h3>
 
               <div className="space-y-4 text-xs font-mono">
                 <div>
-                  <label className="text-slate-400">BENCHMARK ON-CHAIN SHA-256 HASH</label>
+                  <label className={`block mb-1 ${t.textMuted}`}>BENCHMARK ON-CHAIN SHA-256 HASH</label>
                   <input
                     type="text"
                     value={benchmarkHash}
                     onChange={(e) => setBenchmarkHash(e.target.value)}
                     placeholder="Genesis hash to verify against..."
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 mt-1 text-cyan-400 outline-none focus:border-emerald-500"
+                    className={`w-full rounded-lg p-2.5 text-cyan-500 outline-none transition ${t.input}`}
                   />
                 </div>
 
                 <div>
-                  <label className="text-slate-400 block mb-1">UPLOAD RAW EVIDENCE FILE PRESENTED IN COURT</label>
+                  <label className={`block mb-1 ${t.textMuted}`}>UPLOAD RAW EVIDENCE FILE PRESENTED IN COURT</label>
                   <input
                     type="file"
                     onChange={(e) => {
@@ -1675,17 +1596,17 @@ export default function App() {
                         setVerifyUploadedImageDataUrl(null);
                       }
                     }}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:bg-emerald-600 file:text-white"
+                    className={`w-full rounded-lg p-2 file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:bg-emerald-600 file:text-white ${t.input}`}
                   />
                 </div>
 
                 <div>
                   <div className="flex justify-between items-center mb-1">
-                    <label className="text-slate-400">— OR TEST EXTRACTED TEXT CONTENT —</label>
+                    <label className={t.textMuted}>— OR TEST EXTRACTED TEXT CONTENT —</label>
                     <button
                       type="button"
                       onClick={simulateTamper}
-                      className="text-rose-400 hover:text-rose-300 font-bold text-[11px] flex items-center gap-1 bg-rose-950/40 border border-rose-500/30 px-2.5 py-1 rounded-md"
+                      className="text-rose-500 hover:text-rose-400 font-bold text-[11px] flex items-center gap-1 bg-rose-500/10 border border-rose-500/30 px-2.5 py-1 rounded-md"
                     >
                       <AlertTriangle className="h-3.5 w-3.5" /> 1-Click Simulate Fraud/Tampering
                     </button>
@@ -1694,7 +1615,7 @@ export default function App() {
                     rows={5}
                     value={verifyText}
                     onChange={(e) => setVerifyText(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 outline-none focus:border-emerald-500 leading-relaxed font-mono"
+                    className={`w-full rounded-xl p-3 outline-none leading-relaxed font-mono transition ${t.input}`}
                   />
                 </div>
 
@@ -1702,7 +1623,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={executeVerification}
-                    className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg transition"
+                    className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-md transition"
                   >
                     Verify Digital Evidence Integrity
                   </button>
@@ -1714,7 +1635,7 @@ export default function App() {
                       setVerifyUploadedImageDataUrl(null);
                       setVerifyStatus(null);
                     }}
-                    className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl"
+                    className={`px-4 py-3 font-bold rounded-xl border transition ${t.pillNav}`}
                   >
                     Reset Form
                   </button>
@@ -1727,14 +1648,14 @@ export default function App() {
               <div
                 className={`p-5 rounded-2xl border flex items-start space-x-4 ${
                   verifyStatus.is_intact
-                    ? "bg-emerald-950/40 border-emerald-500/60 text-emerald-300"
-                    : "bg-rose-950/40 border-rose-500/60 text-rose-300"
+                    ? "bg-emerald-500/10 border-emerald-500/60 text-emerald-600 dark:text-emerald-300"
+                    : "bg-rose-500/10 border-rose-500/60 text-rose-600 dark:text-rose-300"
                 }`}
               >
                 {verifyStatus.is_intact ? (
-                  <CheckCircle2 className="h-7 w-7 shrink-0 text-emerald-400" />
+                  <CheckCircle2 className="h-7 w-7 shrink-0 text-emerald-500" />
                 ) : (
-                  <ShieldAlert className="h-7 w-7 shrink-0 text-rose-400 animate-pulse" />
+                  <ShieldAlert className="h-7 w-7 shrink-0 text-rose-500 animate-pulse" />
                 )}
                 <div className="space-y-1 font-mono flex-1">
                   <h3 className="font-bold text-sm">
@@ -1754,7 +1675,7 @@ export default function App() {
                     <div className="pt-2">
                       <button
                         onClick={() => openBsaCertificate(selectedLedgerItem.doc_id)}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-1.5 rounded-lg font-sans flex items-center gap-1.5"
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-1.5 rounded-lg font-sans flex items-center gap-1.5 shadow-sm"
                       >
                         <Award className="w-4 h-4" /> Generate Statutory Sec 63 BSA Certificate
                       </button>
@@ -1769,55 +1690,55 @@ export default function App() {
 
       {/* MODAL: SECTION 63 BSA STATUTORY CERTIFICATE */}
       {certModalDocId && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 max-w-2xl w-full rounded-2xl p-6 space-y-5 shadow-2xl">
-            <div className="border-b border-slate-800 pb-4 flex justify-between items-start">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className={`max-w-2xl w-full rounded-2xl p-6 space-y-5 shadow-2xl border ${t.card}`}>
+            <div className={`border-b pb-4 flex justify-between items-start ${t.border}`}>
               <div>
-                <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
-                  <Award className="w-5 h-5 text-emerald-400" /> Electronic Record Admissibility Certificate
+                <h3 className={`text-base font-bold flex items-center gap-2 ${t.titlePrimary}`}>
+                  <Award className="w-5 h-5 text-emerald-500" /> Electronic Record Admissibility Certificate
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">Under Section 63 of Bharatiya Sakshya Adhiniyam (BSA), 2023</p>
+                <p className={`text-xs mt-0.5 ${t.textMuted}`}>Under Section 63 of Bharatiya Sakshya Adhiniyam (BSA), 2023</p>
               </div>
-              <button onClick={() => setCertModalDocId(null)} className="text-slate-400 hover:text-white text-xs bg-slate-800 px-2.5 py-1 rounded-lg">
+              <button onClick={() => setCertModalDocId(null)} className={`text-xs px-2.5 py-1 rounded-lg border ${t.pillNav}`}>
                 Close
               </button>
             </div>
 
             {isLoadingCert ? (
-              <p className="py-12 text-center text-xs text-slate-400 font-mono">Generating statutory certificate package...</p>
+              <p className={`py-12 text-center text-xs font-mono ${t.textMuted}`}>Generating statutory certificate package...</p>
             ) : certificateData ? (
               <div className="space-y-4 text-xs font-sans">
-                <div className="grid grid-cols-2 gap-3 bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono">
+                <div className={`grid grid-cols-2 gap-3 p-4 rounded-xl border font-mono ${t.cardInner}`}>
                   <div>
-                    <span className="text-slate-500">Case Identifier:</span>
-                    <p className="font-bold text-slate-200">{certificateData.case_number}</p>
+                    <span className={t.textMuted}>Case Identifier:</span>
+                    <p className={`font-bold ${t.titlePrimary}`}>{certificateData.case_number}</p>
                   </div>
                   <div>
-                    <span className="text-slate-500">Document UUID:</span>
-                    <p className="font-bold text-emerald-400">{certificateData.doc_id}</p>
+                    <span className={t.textMuted}>Document UUID:</span>
+                    <p className="font-bold text-emerald-500">{certificateData.doc_id}</p>
                   </div>
                   <div>
-                    <span className="text-slate-500">Classification:</span>
-                    <p className="text-slate-200">{certificateData.doc_type}</p>
+                    <span className={t.textMuted}>Classification:</span>
+                    <p className={t.titlePrimary}>{certificateData.doc_type}</p>
                   </div>
                   <div>
-                    <span className="text-slate-500">Certifying Officer:</span>
-                    <p className="text-slate-200">{certificateData.officer?.id} ({certificateData.officer?.role})</p>
+                    <span className={t.textMuted}>Certifying Officer:</span>
+                    <p className={t.titlePrimary}>{certificateData.officer?.id} ({certificateData.officer?.role})</p>
                   </div>
                 </div>
 
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1.5 font-mono text-[11px]">
-                  <p className="text-slate-500">SHA-256 Genesis Digest:</p>
-                  <p className="text-emerald-400 break-all">{certificateData.crypto_integrity?.sha256_digest}</p>
-                  <p className="text-slate-500 mt-2">Chained Block Hash:</p>
-                  <p className="text-slate-300 break-all">{certificateData.crypto_integrity?.block_hash}</p>
+                <div className={`p-4 rounded-xl border space-y-1.5 font-mono text-[11px] ${t.cardInner}`}>
+                  <p className={t.textMuted}>SHA-256 Genesis Digest:</p>
+                  <p className="text-emerald-500 break-all">{certificateData.crypto_integrity?.sha256_digest}</p>
+                  <p className={`mt-2 ${t.textMuted}`}>Chained Block Hash:</p>
+                  <p className={`break-all ${t.titlePrimary}`}>{certificateData.crypto_integrity?.block_hash}</p>
                 </div>
 
-                <div className="p-4 bg-slate-800/40 rounded-xl border border-slate-700 text-slate-300 italic text-xs leading-relaxed">
+                <div className={`p-4 rounded-xl border italic text-xs leading-relaxed ${isDark ? "bg-slate-800/40 text-slate-300 border-slate-700" : "bg-slate-50 text-slate-700 border-slate-200"}`}>
                   "{certificateData.declaration}"
                 </div>
 
-                <div className="flex justify-between items-center text-[10px] text-slate-500 font-mono pt-2">
+                <div className={`flex justify-between items-center text-[10px] font-mono pt-2 ${t.textMuted}`}>
                   <span>Statutory Reference: Act No. 47 of 2023</span>
                   <span>Timestamp: {certificateData.timestamp}</span>
                 </div>
@@ -1828,4 +1749,4 @@ export default function App() {
       )}
     </div>
   );
-}
+}   
