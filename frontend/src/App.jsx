@@ -615,24 +615,33 @@ export default function App() {
       data.append("text_content", rawText);
     }
 
+    let responseData = null;
+
     try {
       const res = await axios.post(`${API_BASE}/documents/ingest`, data, {
         headers: {
           "X-Officer-Id": officerId
-          // Let the browser/Axios automatically set Content-Type with the multipart boundary
         }
       });
+      responseData = res.data;
+    } catch (err) {
+      console.error("Ingestion POST error:", err);
+      const detail = err.response?.data?.detail || err.message;
+      return alert(`Ingestion error: ${detail}`);
+    }
 
-      const qrDataUrl = `data:image/png;base64,${res.data.malkhana_qr}`;
+    // Process result cleanly
+    if (responseData) {
+      const qrDataUrl = `data:image/png;base64,${responseData.malkhana_qr}`;
       setIngestOutput({
-        ...res.data,
-        disk_storage_path: `vault_storage/${res.data.doc_id}.enc`,
-        sha256_hash: res.data.sha256_digest,
-        redacted_preview: res.data.masked_text,
+        ...responseData,
+        disk_storage_path: `vault_storage/${responseData.doc_id}.enc`,
+        sha256_hash: responseData.sha256_digest,
+        redacted_preview: responseData.masked_text,
         malkhana_qr: qrDataUrl
       });
-      setBenchmarkHash(res.data.sha256_digest);
-      setVerifyText(res.data.masked_text || rawText);
+      setBenchmarkHash(responseData.sha256_digest);
+      setVerifyText(responseData.masked_text || rawText);
 
       if (inputMode === "file" && uploadedFile && uploadedFile.type.startsWith("image/")) {
         const reader = new FileReader();
@@ -643,12 +652,10 @@ export default function App() {
         reader.readAsDataURL(uploadedFile);
       }
 
-      loadDashboard();
-      fetchLedger();
-    } catch (err) {
-      console.error("Full Ingestion Error:", err);
-      const detail = err.response?.data?.detail || err.message;
-      alert(`Ingestion error: ${detail}`);
+      // Safe background re-sync (wrapped in its own catch so it never triggers an alert)
+      try {
+        await Promise.allSettled([loadDashboard(), fetchLedger()]);
+      } catch (_) {}
     }
   };
 
